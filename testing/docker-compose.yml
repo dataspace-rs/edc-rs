@@ -1,6 +1,6 @@
 services:
   consumer-connector:
-    image: ghcr.io/dataspace-rs/connector:0.10.1
+    image: ghcr.io/dataspace-rs/connector:0.11.1
     ports:
       - "19191:9191" # connector default
       - "19192:9192" # connector control
@@ -18,7 +18,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   provider-connector:
-    image: ghcr.io/dataspace-rs/connector:0.10.1
+    image: ghcr.io/dataspace-rs/connector:0.11.1
     ports:
       - "29191:9191" # connector default
       - "29192:9192" # connector control
