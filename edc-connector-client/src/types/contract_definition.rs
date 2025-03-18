@@ -1,4 +1,5 @@
-use crate::{BuilderError, ConversionError};
+use crate::ConversionError;
+use bon::Builder;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::PreferMany, serde_as, OneOrMany};
 
@@ -8,25 +9,26 @@ use super::{
 };
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct ContractDefinition {
-    #[serde(rename = "@id")]
-    id: String,
-    access_policy_id: String,
-    contract_policy_id: String,
+    #[builder(field)]
+    #[serde(default)]
+    private_properties: Properties,
+    #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(default)]
     assets_selector: Vec<Criterion>,
-    #[serde(default)]
-    private_properties: Properties,
+    #[builder(into)]
+    #[serde(rename = "@id")]
+    id: String,
+    #[builder(into)]
+    access_policy_id: String,
+    #[builder(into)]
+    contract_policy_id: String,
 }
 
 impl ContractDefinition {
-    pub fn builder() -> ContractDefinitionBuilder {
-        ContractDefinitionBuilder::default()
-    }
-
     pub fn id(&self) -> &str {
         &self.id
     }
@@ -51,29 +53,35 @@ impl ContractDefinition {
     }
 }
 
-#[derive(Default)]
-pub struct ContractDefinitionBuilder {
-    id: Option<String>,
-    access_policy_id: Option<String>,
-    contract_policy_id: Option<String>,
-    assets_selector: Vec<Criterion>,
-    private_properties: Properties,
+impl<S: contract_definition_builder::State> ContractDefinitionBuilder<S> {
+    pub fn private_property<T>(mut self, property: &str, value: T) -> Self
+    where
+        T: ToValue,
+    {
+        self.private_properties.set(property, value);
+        self
+    }
 }
 
-impl ContractDefinitionBuilder {
-    pub fn id(mut self, id: &str) -> Self {
-        self.id = Some(id.to_string());
-        self
-    }
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct NewContractDefinition {
+    #[builder(field)]
+    #[serde(default)]
+    private_properties: Properties,
+    #[builder(field)]
+    #[serde(default)]
+    assets_selector: Vec<Criterion>,
+    #[builder(into)]
+    #[serde(rename = "@id")]
+    id: Option<String>,
+    #[builder(into)]
+    access_policy_id: String,
+    #[builder(into)]
+    contract_policy_id: String,
+}
 
-    pub fn access_policy_id(mut self, access_policy_id: &str) -> Self {
-        self.access_policy_id = Some(access_policy_id.to_string());
-        self
-    }
-    pub fn contract_policy_id(mut self, contract_policy_id: &str) -> Self {
-        self.contract_policy_id = Some(contract_policy_id.to_string());
-        self
-    }
+impl<S: new_contract_definition_builder::State> NewContractDefinitionBuilder<S> {
     pub fn private_property<T>(mut self, property: &str, value: T) -> Self
     where
         T: ToValue,
@@ -85,92 +93,5 @@ impl ContractDefinitionBuilder {
     pub fn asset_selector(mut self, selector: Criterion) -> Self {
         self.assets_selector.push(selector);
         self
-    }
-
-    pub fn build(self) -> Result<ContractDefinition, BuilderError> {
-        Ok(ContractDefinition {
-            id: self
-                .id
-                .ok_or_else(|| BuilderError::missing_property("id"))?,
-            access_policy_id: self
-                .access_policy_id
-                .ok_or_else(|| BuilderError::missing_property("access_policy_id"))?,
-            contract_policy_id: self
-                .contract_policy_id
-                .ok_or_else(|| BuilderError::missing_property("contract_policy_id"))?,
-
-            assets_selector: self.assets_selector,
-            private_properties: self.private_properties,
-        })
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NewContractDefinition {
-    #[serde(rename = "@id")]
-    id: Option<String>,
-    access_policy_id: String,
-    contract_policy_id: String,
-    assets_selector: Vec<Criterion>,
-    #[serde(default)]
-    private_properties: Properties,
-}
-
-impl NewContractDefinition {
-    pub fn builder() -> NewContractDefinitionBuilder {
-        NewContractDefinitionBuilder::default()
-    }
-}
-
-#[derive(Default)]
-pub struct NewContractDefinitionBuilder {
-    id: Option<String>,
-    access_policy_id: Option<String>,
-    contract_policy_id: Option<String>,
-    asset_selector: Vec<Criterion>,
-    private_properties: Properties,
-}
-
-impl NewContractDefinitionBuilder {
-    pub fn id(mut self, id: &str) -> Self {
-        self.id = Some(id.to_string());
-        self
-    }
-
-    pub fn private_property<T>(mut self, property: &str, value: T) -> Self
-    where
-        T: ToValue,
-    {
-        self.private_properties.set(property, value);
-        self
-    }
-
-    pub fn access_policy_id(mut self, access_policy_id: &str) -> Self {
-        self.access_policy_id = Some(access_policy_id.to_string());
-        self
-    }
-    pub fn contract_policy_id(mut self, contract_policy_id: &str) -> Self {
-        self.contract_policy_id = Some(contract_policy_id.to_string());
-        self
-    }
-    pub fn asset_selector(mut self, selector: Criterion) -> Self {
-        self.asset_selector.push(selector);
-        self
-    }
-
-    pub fn build(self) -> Result<NewContractDefinition, BuilderError> {
-        Ok(NewContractDefinition {
-            id: self.id,
-            access_policy_id: self
-                .access_policy_id
-                .ok_or_else(|| BuilderError::missing_property("access_policy_id"))?,
-            contract_policy_id: self
-                .contract_policy_id
-                .ok_or_else(|| BuilderError::missing_property("contract_policy_id"))?,
-
-            assets_selector: self.asset_selector,
-            private_properties: self.private_properties,
-        })
     }
 }

@@ -19,8 +19,7 @@ mod create {
             .id(&id)
             .access_policy_id("access_id")
             .contract_policy_id("contract_id")
-            .build()
-            .unwrap();
+            .build();
 
         let response = client
             .contract_definitions()
@@ -42,8 +41,7 @@ mod create {
             .id(&id)
             .access_policy_id("access_id")
             .contract_policy_id("contract_id")
-            .build()
-            .unwrap();
+            .build();
 
         let response = client
             .contract_definitions()
@@ -88,8 +86,7 @@ mod delete {
             .id(&id)
             .access_policy_id("access_id")
             .contract_policy_id("contract_id")
-            .build()
-            .unwrap();
+            .build();
 
         let definition = client
             .contract_definitions()
@@ -138,8 +135,7 @@ mod get {
             .id(&id)
             .access_policy_id("access_id")
             .contract_policy_id("contract_id")
-            .build()
-            .unwrap();
+            .build();
 
         let created = client
             .contract_definitions()
@@ -192,8 +188,7 @@ mod update {
             .id(&id)
             .access_policy_id("access_id")
             .contract_policy_id("contract_id")
-            .build()
-            .unwrap();
+            .build();
 
         client
             .contract_definitions()
@@ -205,8 +200,7 @@ mod update {
             .id(&id)
             .access_policy_id("access_id")
             .contract_policy_id("updated_contract_id")
-            .build()
-            .unwrap();
+            .build();
 
         client
             .contract_definitions()
@@ -228,8 +222,7 @@ mod update {
             .id(&id)
             .access_policy_id("access_id")
             .contract_policy_id("updated_contract_id")
-            .build()
-            .unwrap();
+            .build();
 
         let response = client
             .contract_definitions()
@@ -260,8 +253,7 @@ mod query {
             .id(&id)
             .access_policy_id("access_id")
             .contract_policy_id("contract_id")
-            .build()
-            .unwrap();
+            .build();
 
         client
             .contract_definitions()

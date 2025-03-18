@@ -25,8 +25,7 @@ mod initiate {
         let dataset_request = DatasetRequest::builder()
             .counter_party_address(PROVIDER_PROTOCOL)
             .id(&asset_id)
-            .build()
-            .unwrap();
+            .build();
 
         let dataset = consumer
             .catalogue()
@@ -47,8 +46,7 @@ mod initiate {
                     .target(Target::id(&asset_id))
                     .build(),
             )
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer
             .contract_negotiations()
@@ -69,8 +67,7 @@ mod initiate {
         let dataset_request = DatasetRequest::builder()
             .counter_party_address(PROVIDER_PROTOCOL)
             .id(&asset_id)
-            .build()
-            .unwrap();
+            .build();
 
         let dataset = consumer
             .catalogue()
@@ -90,8 +87,7 @@ mod initiate {
                     .target(Target::id(&asset_id))
                     .build(),
             )
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer.contract_negotiations().initiate(&request).await;
 

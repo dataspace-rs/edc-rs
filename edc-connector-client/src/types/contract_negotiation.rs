@@ -1,81 +1,34 @@
+use bon::Builder;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::PreferMany, serde_as, OneOrMany};
 
-use crate::{BuilderError, ConversionError, DATASPACE_PROTOCOL};
+use crate::ConversionError;
 
 use super::{
     callback_address::CallbackAddress,
     policy::Policy,
     properties::{FromValue, Properties},
+    Protocol,
 };
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct ContractRequest {
-    protocol: String,
+    #[builder(field)]
+    callback_addresses: Vec<CallbackAddress>,
+    #[builder(default)]
+    protocol: Protocol,
+    #[builder(into)]
     counter_party_id: String,
+    #[builder(into)]
     counter_party_address: String,
     policy: Policy,
-    callback_addresses: Vec<CallbackAddress>,
 }
 
-impl ContractRequest {
-    pub fn builder() -> ContractRequestBuilder {
-        ContractRequestBuilder::default()
-    }
-}
-
-#[derive(Default)]
-pub struct ContractRequestBuilder {
-    protocol: Option<String>,
-    counter_party_id: Option<String>,
-    counter_party_address: Option<String>,
-    policy: Option<Policy>,
-    callback_addresses: Vec<CallbackAddress>,
-}
-
-impl ContractRequestBuilder {
-    pub fn protocol(mut self, protocol: &str) -> Self {
-        self.protocol = Some(protocol.to_string());
-        self
-    }
-
-    pub fn counter_party_address(mut self, counter_party_address: &str) -> Self {
-        self.counter_party_address = Some(counter_party_address.to_string());
-        self
-    }
-
-    pub fn counter_party_id(mut self, counter_party_id: &str) -> Self {
-        self.counter_party_id = Some(counter_party_id.to_string());
-        self
-    }
-
-    pub fn policy(mut self, policy: Policy) -> Self {
-        self.policy = Some(policy);
-        self
-    }
-
+impl<S: contract_request_builder::State> ContractRequestBuilder<S> {
     pub fn callback_address(mut self, callback_address: CallbackAddress) -> Self {
         self.callback_addresses.push(callback_address);
         self
-    }
-
-    pub fn build(self) -> Result<ContractRequest, BuilderError> {
-        Ok(ContractRequest {
-            protocol: self
-                .protocol
-                .unwrap_or_else(|| DATASPACE_PROTOCOL.to_string()),
-            counter_party_address: self
-                .counter_party_address
-                .ok_or_else(|| BuilderError::missing_property("counter_party_address"))?,
-            counter_party_id: self
-                .counter_party_id
-                .ok_or_else(|| BuilderError::missing_property("counter_party_id"))?,
-            policy: self
-                .policy
-                .ok_or_else(|| BuilderError::missing_property("policy"))?,
-            callback_addresses: self.callback_addresses,
-        })
     }
 }
 

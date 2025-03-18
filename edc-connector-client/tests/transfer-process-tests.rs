@@ -28,8 +28,7 @@ mod initiate {
             .contract_id(&agreement_id)
             .transfer_type("HttpData-PULL")
             .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer
             .transfer_processes()
@@ -51,8 +50,7 @@ mod initiate {
             .contract_id(&Uuid::new_v4().to_string())
             .transfer_type("HttpData-PULL")
             .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer.transfer_processes().initiate(&request).await;
 
@@ -89,8 +87,7 @@ mod get {
         let cb = CallbackAddress::builder()
             .uri("http://localhost:80")
             .events(vec!["transfer.process".to_string()])
-            .build()
-            .unwrap();
+            .build();
 
         let request = TransferRequest::builder()
             .counter_party_address(PROVIDER_PROTOCOL)
@@ -98,8 +95,7 @@ mod get {
             .transfer_type("HttpData-PULL")
             .callback_address(cb.clone())
             .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer
             .transfer_processes()
@@ -159,8 +155,7 @@ mod query {
             .contract_id(&agreement_id)
             .transfer_type("HttpData-PULL")
             .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer
             .transfer_processes()
@@ -206,8 +201,7 @@ mod terminate {
             .contract_id(&agreement_id)
             .transfer_type("HttpData-PULL")
             .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer
             .transfer_processes()
@@ -253,8 +247,7 @@ mod suspend {
             .contract_id(&agreement_id)
             .transfer_type("HttpData-PULL")
             .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer
             .transfer_processes()

@@ -1,45 +1,44 @@
+use bon::Builder;
 use serde::{Deserialize, Serialize};
 
-use crate::error::{BuilderError, ConversionError};
+use crate::error::ConversionError;
 
 use super::{
     data_address::DataAddress,
     properties::{FromValue, Properties, PropertyValue, ToValue},
 };
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct Asset {
+    #[builder(field)]
+    properties: Properties,
+    #[builder(field)]
+    #[serde(default = "Default::default")]
+    private_properties: Properties,
+    #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
-    properties: Properties,
-    #[serde(default = "Default::default")]
-    private_properties: Properties,
     data_address: DataAddress,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct NewAsset {
-    #[serde(rename = "@id")]
-    id: Option<String>,
+    #[builder(field)]
     properties: Properties,
+    #[builder(field)]
     #[serde(default = "Default::default")]
     private_properties: Properties,
+    #[builder(into)]
+    #[serde(rename = "@id")]
+    id: Option<String>,
     data_address: DataAddress,
 }
 
-impl NewAsset {
-    pub fn builder() -> NewAssetBuilder {
-        NewAssetBuilder::default()
-    }
-}
+impl NewAsset {}
 
 impl Asset {
-    pub fn builder() -> AssetBuider {
-        AssetBuider::default()
-    }
-
     pub fn property<T>(&self, property: &str) -> Result<Option<T>, ConversionError>
     where
         T: FromValue,
@@ -69,20 +68,7 @@ where {
     }
 }
 
-#[derive(Default)]
-pub struct AssetBuider {
-    id: Option<String>,
-    properties: Properties,
-    private_properties: Properties,
-    data_address: Option<DataAddress>,
-}
-
-impl AssetBuider {
-    pub fn id(mut self, id: &str) -> Self {
-        self.id = Some(id.to_string());
-        self
-    }
-
+impl<S: asset_builder::State> AssetBuilder<S> {
     pub fn property<T>(mut self, property: &str, value: T) -> Self
     where
         T: ToValue,
@@ -98,40 +84,9 @@ impl AssetBuider {
         self.private_properties.set(property, value);
         self
     }
-
-    pub fn data_address(mut self, data_address: DataAddress) -> Self {
-        self.data_address = Some(data_address);
-        self
-    }
-
-    pub fn build(self) -> Result<Asset, BuilderError> {
-        Ok(Asset {
-            id: self
-                .id
-                .ok_or_else(|| BuilderError::missing_property("id"))?,
-            properties: self.properties,
-            private_properties: self.private_properties,
-            data_address: self
-                .data_address
-                .ok_or_else(|| BuilderError::missing_property("data_address"))?,
-        })
-    }
 }
 
-#[derive(Default)]
-pub struct NewAssetBuilder {
-    id: Option<String>,
-    properties: Properties,
-    private_properties: Properties,
-    data_address: Option<DataAddress>,
-}
-
-impl NewAssetBuilder {
-    pub fn id(mut self, id: &str) -> Self {
-        self.id = Some(id.to_string());
-        self
-    }
-
+impl<S: new_asset_builder::State> NewAssetBuilder<S> {
     pub fn property<T>(mut self, property: &str, value: T) -> Self
     where
         T: ToValue,
@@ -146,21 +101,5 @@ impl NewAssetBuilder {
     {
         self.private_properties.set(property, value);
         self
-    }
-
-    pub fn data_address(mut self, data_address: DataAddress) -> Self {
-        self.data_address = Some(data_address);
-        self
-    }
-
-    pub fn build(self) -> Result<NewAsset, BuilderError> {
-        Ok(NewAsset {
-            id: self.id,
-            properties: self.properties,
-            private_properties: self.private_properties,
-            data_address: self
-                .data_address
-                .ok_or_else(|| BuilderError::missing_property("data_address"))?,
-        })
     }
 }

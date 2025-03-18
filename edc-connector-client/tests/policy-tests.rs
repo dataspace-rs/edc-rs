@@ -198,8 +198,7 @@ mod update {
                     .permission(Permission::builder().build())
                     .build(),
             )
-            .build()
-            .unwrap();
+            .build();
 
         client.policies().update(&updated_policy).await.unwrap();
 
@@ -220,8 +219,7 @@ mod update {
                     .permission(Permission::builder().build())
                     .build(),
             )
-            .build()
-            .unwrap();
+            .build();
 
         let response = client.policies().update(&updated_policy).await;
 

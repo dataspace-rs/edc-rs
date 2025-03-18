@@ -1,4 +1,5 @@
-use crate::{BuilderError, ConversionError, DATASPACE_PROTOCOL};
+use crate::ConversionError;
+use bon::Builder;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::PreferMany, serde_as, OneOrMany};
 
@@ -6,83 +7,30 @@ use super::{
     callback_address::CallbackAddress,
     data_address::DataAddress,
     properties::{FromValue, Properties},
+    Protocol,
 };
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferRequest {
-    protocol: String,
+    #[builder(field)]
+    callback_addresses: Vec<CallbackAddress>,
+    #[builder(default)]
+    #[builder(into)]
+    protocol: Protocol,
+    #[builder(into)]
     counter_party_address: String,
+    #[builder(into)]
     contract_id: String,
+    #[builder(into)]
     transfer_type: String,
-    data_destination: Option<DataAddress>,
-    callback_addresses: Vec<CallbackAddress>,
+    destination: Option<DataAddress>,
 }
 
-impl TransferRequest {
-    pub fn builder() -> TransferRequestBuilder {
-        TransferRequestBuilder::default()
-    }
-}
-
-#[derive(Default)]
-pub struct TransferRequestBuilder {
-    protocol: Option<String>,
-    counter_party_address: Option<String>,
-    contract_id: Option<String>,
-    transfer_type: Option<String>,
-    data_destination: Option<DataAddress>,
-    callback_addresses: Vec<CallbackAddress>,
-}
-
-impl TransferRequestBuilder {
-    pub fn protocol(mut self, protocol: &str) -> Self {
-        self.protocol = Some(protocol.to_string());
-        self
-    }
-
-    pub fn counter_party_address(mut self, counter_party_address: &str) -> Self {
-        self.counter_party_address = Some(counter_party_address.to_string());
-        self
-    }
-
-    pub fn contract_id(mut self, contract_id: &str) -> Self {
-        self.contract_id = Some(contract_id.to_string());
-        self
-    }
-
-    pub fn transfer_type(mut self, transfer_type: &str) -> Self {
-        self.transfer_type = Some(transfer_type.to_string());
-        self
-    }
-
-    pub fn destination(mut self, destination: DataAddress) -> Self {
-        self.data_destination = Some(destination);
-        self
-    }
-
+impl<S: transfer_request_builder::State> TransferRequestBuilder<S> {
     pub fn callback_address(mut self, callback_address: CallbackAddress) -> Self {
         self.callback_addresses.push(callback_address);
         self
-    }
-
-    pub fn build(self) -> Result<TransferRequest, BuilderError> {
-        Ok(TransferRequest {
-            protocol: self
-                .protocol
-                .unwrap_or_else(|| DATASPACE_PROTOCOL.to_string()),
-            counter_party_address: self
-                .counter_party_address
-                .ok_or_else(|| BuilderError::missing_property("counter_party_address"))?,
-            contract_id: self
-                .contract_id
-                .ok_or_else(|| BuilderError::missing_property("contract_id"))?,
-            transfer_type: self
-                .transfer_type
-                .ok_or_else(|| BuilderError::missing_property("transfer_type"))?,
-            data_destination: self.data_destination,
-            callback_addresses: self.callback_addresses,
-        })
     }
 }
 

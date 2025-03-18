@@ -20,8 +20,7 @@ mod create {
             .id(&id)
             .property("foo", "bar")
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = client.assets().create(&asset).await.unwrap();
 
@@ -39,8 +38,7 @@ mod create {
             .id(&id)
             .property("foo", "bar")
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = client.assets().create(&asset).await.unwrap();
 
@@ -77,8 +75,7 @@ mod delete {
             .id(&id)
             .property("foo", "bar")
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let asset = client.assets().create(&new_asset).await.unwrap();
 
@@ -122,8 +119,7 @@ mod get {
             .id(&id)
             .property("foo", "bar")
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let asset = client.assets().create(&new_asset).await.unwrap();
 
@@ -143,8 +139,7 @@ mod get {
             .property("foo", vec!["bar"])
             .property("foo_arr", vec!["bar", "baz"])
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let asset = client.assets().create(&asset).await.unwrap();
 
@@ -204,8 +199,7 @@ mod update {
             .id(&id)
             .property("foo", "bar")
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         client.assets().create(&new_asset).await.unwrap();
 
@@ -213,8 +207,7 @@ mod update {
             .id(&id)
             .property("foo", "bar2")
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         client.assets().update(&updated_asset).await.unwrap();
 
@@ -232,8 +225,7 @@ mod update {
             .id(&id)
             .property("foo", "bar2")
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let response = client.assets().update(&updated_asset).await;
 
@@ -268,8 +260,7 @@ mod query {
             .id(&id)
             .property("foo", "bar")
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         client.assets().create(&new_asset).await.unwrap();
 
@@ -308,16 +299,14 @@ mod query {
             .property("foo", "bar")
             .property("group", &group)
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let new_asset_2 = NewAsset::builder()
             .id(&id_1)
             .property("foo", "baz")
             .property("group", &group)
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         client.assets().create(&new_asset).await.unwrap();
         client.assets().create(&new_asset_2).await.unwrap();
@@ -348,16 +337,14 @@ mod query {
             .property("foo", "bar")
             .property("group", &group)
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         let new_asset_2 = NewAsset::builder()
             .id(&id_1)
             .property("foo", "baz")
             .property("group", &group)
             .data_address(DataAddress::builder().kind("type").build().unwrap())
-            .build()
-            .unwrap();
+            .build();
 
         client.assets().create(&new_asset).await.unwrap();
         client.assets().create(&new_asset_2).await.unwrap();

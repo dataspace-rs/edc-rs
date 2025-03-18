@@ -1,7 +1,6 @@
+use bon::Builder;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::PreferMany, serde_as, OneOrMany};
-
-use crate::BuilderError;
 
 use super::{policy::Policy, query::Query, Protocol};
 
@@ -39,109 +38,28 @@ impl Dataset {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogRequest {
+    #[builder(into)]
     counter_party_address: String,
+    #[builder(into)]
+    #[builder(default)]
     protocol: Protocol,
+    #[builder(into)]
     counter_party_id: Option<String>,
     query_spec: Query,
 }
 
-impl CatalogRequest {
-    pub fn builder() -> CatalogRequestBuilder {
-        CatalogRequestBuilder::default()
-    }
-}
-
-#[derive(Default)]
-pub struct CatalogRequestBuilder {
-    protocol: Protocol,
-    counter_party_address: Option<String>,
-    counter_party_id: Option<String>,
-    query_spec: Query,
-}
-
-impl CatalogRequestBuilder {
-    pub fn protocol(mut self, protocol: &str) -> Self {
-        self.protocol = Protocol::new(protocol);
-        self
-    }
-
-    pub fn counter_party_address(mut self, counter_party_address: &str) -> Self {
-        self.counter_party_address = Some(counter_party_address.to_string());
-        self
-    }
-
-    pub fn counter_party_id(mut self, counter_party_id: &str) -> Self {
-        self.counter_party_id = Some(counter_party_id.to_string());
-        self
-    }
-
-    pub fn query_spec(mut self, query_spec: Query) -> Self {
-        self.query_spec = query_spec;
-        self
-    }
-
-    pub fn build(self) -> Result<CatalogRequest, BuilderError> {
-        Ok(CatalogRequest {
-            counter_party_address: self
-                .counter_party_address
-                .ok_or_else(|| BuilderError::missing_property("counter_party_address"))?,
-            protocol: self.protocol,
-            counter_party_id: self.counter_party_id,
-            query_spec: self.query_spec,
-        })
-    }
-}
-
-#[derive(Serialize)]
+#[derive(Serialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct DatasetRequest {
+    #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
+    #[builder(into)]
     counter_party_address: String,
+    #[builder(into)]
+    #[builder(default)]
     protocol: Protocol,
-}
-
-impl DatasetRequest {
-    pub fn builder() -> DatasetRequestBuilder {
-        DatasetRequestBuilder::default()
-    }
-}
-
-#[derive(Default)]
-pub struct DatasetRequestBuilder {
-    id: Option<String>,
-    protocol: Protocol,
-    counter_party_address: Option<String>,
-}
-
-impl DatasetRequestBuilder {
-    pub fn protocol(mut self, protocol: &str) -> Self {
-        self.protocol = Protocol::new(protocol);
-        self
-    }
-
-    pub fn counter_party_address(mut self, counter_party_address: &str) -> Self {
-        self.counter_party_address = Some(counter_party_address.to_string());
-        self
-    }
-
-    pub fn id(mut self, id: &str) -> Self {
-        self.id = Some(id.to_string());
-        self
-    }
-
-    pub fn build(self) -> Result<DatasetRequest, BuilderError> {
-        Ok(DatasetRequest {
-            id: self
-                .id
-                .ok_or_else(|| BuilderError::missing_property("id"))?,
-            counter_party_address: self
-                .counter_party_address
-                .ok_or_else(|| BuilderError::missing_property("counter_party_address"))?,
-            protocol: self.protocol,
-        })
-    }
 }

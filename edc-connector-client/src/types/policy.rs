@@ -1,27 +1,36 @@
 mod odrl;
 
+use bon::Builder;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::PreferMany, serde_as, OneOrMany};
 
-use crate::{BuilderError, ConversionError};
+use crate::ConversionError;
 
 use super::properties::{FromValue, Properties, PropertyValue, ToValue};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyDefinition {
+    #[builder(field)]
+    #[serde(default)]
+    private_properties: Properties,
+    #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
     policy: Policy,
-    #[serde(default)]
-    private_properties: Properties,
+}
+
+impl<S: policy_definition_builder::State> PolicyDefinitionBuilder<S> {
+    pub fn private_property<T>(mut self, property: &str, value: T) -> Self
+    where
+        T: ToValue,
+    {
+        self.private_properties.set(property, value);
+        self
+    }
 }
 
 impl PolicyDefinition {
-    pub fn builder() -> PolicyDefinitionBuilder {
-        PolicyDefinitionBuilder::default()
-    }
-
     pub fn policy(&self) -> &Policy {
         &self.policy
     }
@@ -38,86 +47,25 @@ impl PolicyDefinition {
     }
 }
 
-#[derive(Default)]
-pub struct PolicyDefinitionBuilder {
-    id: Option<String>,
-    policy: Option<Policy>,
+#[derive(Debug, Serialize, Deserialize, Builder)]
+#[serde(rename_all = "camelCase")]
+pub struct NewPolicyDefinition {
+    #[builder(field)]
+    #[serde(default)]
     private_properties: Properties,
+    #[builder(into)]
+    #[serde(rename = "@id")]
+    id: Option<String>,
+    policy: Policy,
 }
 
-impl PolicyDefinitionBuilder {
-    pub fn id(mut self, id: &str) -> Self {
-        self.id = Some(id.to_string());
-        self
-    }
-
-    pub fn policy(mut self, policy: Policy) -> Self {
-        self.policy = Some(policy);
-        self
-    }
-
+impl<S: new_policy_definition_builder::State> NewPolicyDefinitionBuilder<S> {
     pub fn private_property<T>(mut self, property: &str, value: T) -> Self
     where
         T: ToValue,
     {
         self.private_properties.set(property, value);
         self
-    }
-
-    pub fn build(self) -> Result<PolicyDefinition, BuilderError> {
-        Ok(PolicyDefinition {
-            id: self
-                .id
-                .ok_or_else(|| BuilderError::missing_property("id"))?,
-            policy: self
-                .policy
-                .ok_or_else(|| BuilderError::missing_property("policy"))?,
-
-            private_properties: self.private_properties,
-        })
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NewPolicyDefinition {
-    #[serde(rename = "@id")]
-    id: Option<String>,
-    policy: Policy,
-    #[serde(default)]
-    private_properties: Properties,
-}
-
-impl NewPolicyDefinition {
-    pub fn builder() -> NewPolicyDefinitionBuilder {
-        NewPolicyDefinitionBuilder(NewPolicyDefinition::default())
-    }
-}
-
-#[derive(Default)]
-pub struct NewPolicyDefinitionBuilder(NewPolicyDefinition);
-
-impl NewPolicyDefinitionBuilder {
-    pub fn id(mut self, id: &str) -> Self {
-        self.0.id = Some(id.to_string());
-        self
-    }
-
-    pub fn policy(mut self, policy: Policy) -> Self {
-        self.0.policy = policy;
-        self
-    }
-
-    pub fn private_property<T>(mut self, property: &str, value: T) -> Self
-    where
-        T: ToValue,
-    {
-        self.0.private_properties.set(property, value);
-        self
-    }
-
-    pub fn build(self) -> NewPolicyDefinition {
-        self.0
     }
 }
 
@@ -142,44 +90,39 @@ impl Default for NewPolicyDefinition {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Builder)]
 pub struct Policy {
-    #[serde(rename = "@id")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    id: Option<String>,
-    #[serde(rename = "@type")]
-    kind: PolicyKind,
-    #[serde(alias = "odrl:assignee")]
-    assignee: Option<String>,
-    #[serde(alias = "odrl:assigner")]
-    assigner: Option<String>,
-    #[serde(alias = "odrl:target")]
-    target: Option<Target>,
+    #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "permission", alias = "odrl:permission", default)]
     permissions: Vec<Permission>,
+    #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "obligation", alias = "odrl:obligation", default)]
     obligations: Vec<Obligation>,
+    #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "prohibition", alias = "odrl:prohibition", default)]
     prohibitions: Vec<Prohibition>,
+    #[builder(into)]
+    #[serde(rename = "@id")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
+    #[builder(default)]
+    #[serde(rename = "@type")]
+    kind: PolicyKind,
+    #[builder(into)]
+    #[serde(alias = "odrl:assignee")]
+    assignee: Option<String>,
+    #[builder(into)]
+    #[serde(alias = "odrl:assigner")]
+    assigner: Option<String>,
+    #[builder(into)]
+    #[serde(alias = "odrl:target")]
+    target: Option<Target>,
 }
 
 impl Policy {
-    pub fn builder() -> PolicyBuilder {
-        PolicyBuilder(Policy {
-            id: None,
-            kind: PolicyKind::Set,
-            assignee: None,
-            assigner: None,
-            target: None,
-            permissions: vec![],
-            obligations: vec![],
-            prohibitions: vec![],
-        })
-    }
-
     pub fn kind(&self) -> &PolicyKind {
         &self.kind
     }
@@ -213,41 +156,41 @@ impl Policy {
     }
 }
 
-pub struct PolicyBuilder(Policy);
-
-impl PolicyBuilder {
-    pub fn id(mut self, id: &str) -> Self {
-        self.0.id = Some(id.to_string());
-        self
-    }
-
-    pub fn assigner(mut self, assigner: &str) -> Self {
-        self.0.assigner = Some(assigner.to_string());
-        self
-    }
-
-    pub fn target(mut self, target: Target) -> Self {
-        self.0.target = Some(target);
-        self
-    }
-
-    pub fn kind(mut self, kind: PolicyKind) -> Self {
-        self.0.kind = kind;
-        self
-    }
-
+impl<S: policy_builder::State> PolicyBuilder<S> {
     pub fn permissions(mut self, permissions: Vec<Permission>) -> Self {
-        self.0.permissions = permissions;
+        self.permissions = permissions;
         self
     }
 
     pub fn permission(mut self, permission: Permission) -> Self {
-        self.0.permissions.push(permission);
+        self.permissions.push(permission);
         self
     }
 
-    pub fn build(self) -> Policy {
-        self.0
+    pub fn prohibitions(mut self, prohibitions: Vec<Prohibition>) -> Self {
+        self.prohibitions = prohibitions;
+        self
+    }
+
+    pub fn prohibition(mut self, prohibition: Prohibition) -> Self {
+        self.prohibitions.push(prohibition);
+        self
+    }
+
+    pub fn obligations(mut self, obligations: Vec<Obligation>) -> Self {
+        self.obligations = obligations;
+        self
+    }
+
+    pub fn obligation(mut self, obligation: Obligation) -> Self {
+        self.obligations.push(obligation);
+        self
+    }
+}
+
+impl Default for PolicyKind {
+    fn default() -> Self {
+        PolicyKind::Set
     }
 }
 
@@ -262,23 +205,18 @@ pub enum PolicyKind {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Builder)]
 pub struct Permission {
+    #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "constraint", alias = "odrl:constraint", default)]
     constraints: Vec<Constraint>,
+    #[builder(default)]
     #[serde(alias = "odrl:action")]
     action: Action,
 }
 
 impl Permission {
-    pub fn builder() -> PermissionBuilder {
-        PermissionBuilder(Permission {
-            action: Action::default(),
-            constraints: vec![],
-        })
-    }
-
     pub fn action(&self) -> &Action {
         &self.action
     }
@@ -288,32 +226,22 @@ impl Permission {
     }
 }
 
-pub struct PermissionBuilder(Permission);
-
-impl PermissionBuilder {
+impl<S: permission_builder::State> PermissionBuilder<S> {
     pub fn constraints(mut self, constraints: Vec<Constraint>) -> Self {
-        self.0.constraints = constraints;
+        self.constraints = constraints;
         self
     }
 
     pub fn constraint(mut self, constraint: Constraint) -> Self {
-        self.0.constraints.push(constraint);
+        self.constraints.push(constraint);
         self
-    }
-
-    pub fn action(mut self, action: Action) -> Self {
-        self.0.action = action;
-        self
-    }
-
-    pub fn build(self) -> Permission {
-        self.0
     }
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Builder)]
 pub struct Obligation {
+    #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "constraint", alias = "odrl:constraint", default)]
     constraints: Vec<Constraint>,
@@ -322,13 +250,6 @@ pub struct Obligation {
 }
 
 impl Obligation {
-    pub fn builder() -> ObligationBuilder {
-        ObligationBuilder(Obligation {
-            action: Action::default(),
-            constraints: vec![],
-        })
-    }
-
     pub fn action(&self) -> &Action {
         &self.action
     }
@@ -338,32 +259,22 @@ impl Obligation {
     }
 }
 
-pub struct ObligationBuilder(Obligation);
-
-impl ObligationBuilder {
+impl<S: obligation_builder::State> ObligationBuilder<S> {
     pub fn constraints(mut self, constraints: Vec<Constraint>) -> Self {
-        self.0.constraints = constraints;
-        self
-    }
-
-    pub fn action(mut self, action: Action) -> Self {
-        self.0.action = action;
+        self.constraints = constraints;
         self
     }
 
     pub fn constraint(mut self, constraint: Constraint) -> Self {
-        self.0.constraints.push(constraint);
+        self.constraints.push(constraint);
         self
-    }
-
-    pub fn build(self) -> Obligation {
-        self.0
     }
 }
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Builder)]
 pub struct Prohibition {
+    #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "constraint", alias = "odrl:constraint", default)]
     constraints: Vec<Constraint>,
@@ -372,13 +283,6 @@ pub struct Prohibition {
 }
 
 impl Prohibition {
-    pub fn builder() -> ProhibitionBuilder {
-        ProhibitionBuilder(Prohibition {
-            action: Action::default(),
-            constraints: vec![],
-        })
-    }
-
     pub fn action(&self) -> &Action {
         &self.action
     }
@@ -388,26 +292,15 @@ impl Prohibition {
     }
 }
 
-pub struct ProhibitionBuilder(Prohibition);
-
-impl ProhibitionBuilder {
+impl<S: prohibition_builder::State> ProhibitionBuilder<S> {
     pub fn constraints(mut self, constraints: Vec<Constraint>) -> Self {
-        self.0.constraints = constraints;
-        self
-    }
-
-    pub fn action(mut self, action: Action) -> Self {
-        self.0.action = action;
+        self.constraints = constraints;
         self
     }
 
     pub fn constraint(mut self, constraint: Constraint) -> Self {
-        self.0.constraints.push(constraint);
+        self.constraints.push(constraint);
         self
-    }
-
-    pub fn build(self) -> Prohibition {
-        self.0
     }
 }
 

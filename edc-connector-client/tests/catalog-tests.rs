@@ -22,8 +22,7 @@ mod catalog {
                     .filter(&format!("{}id", EDC_NAMESPACE), "=", asset_id.to_string())
                     .build(),
             )
-            .build()
-            .unwrap();
+            .build();
 
         let response = consumer.catalogue().request(&request).await.unwrap();
 
@@ -48,8 +47,7 @@ mod dataset {
         let request = DatasetRequest::builder()
             .counter_party_address(PROVIDER_PROTOCOL)
             .id(&asset_id)
-            .build()
-            .unwrap();
+            .build();
 
         let dataset = consumer.catalogue().dataset(&request).await.unwrap();
 

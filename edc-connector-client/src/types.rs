@@ -19,7 +19,7 @@ pub mod response;
 pub mod secret;
 pub mod transfer_process;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Protocol(String);
 
 impl Protocol {
@@ -31,5 +31,11 @@ impl Protocol {
 impl Default for Protocol {
     fn default() -> Self {
         Self(DATASPACE_PROTOCOL.to_string())
+    }
+}
+
+impl From<&str> for Protocol {
+    fn from(protocol: &str) -> Self {
+        Protocol(protocol.to_string())
     }
 }
