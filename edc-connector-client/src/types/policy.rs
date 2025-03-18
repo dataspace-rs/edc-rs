@@ -188,14 +188,9 @@ impl<S: policy_builder::State> PolicyBuilder<S> {
     }
 }
 
-impl Default for PolicyKind {
-    fn default() -> Self {
-        PolicyKind::Set
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
 pub enum PolicyKind {
+    #[default]
     #[serde(alias = "odrl:Set")]
     Set,
     #[serde(alias = "odrl:Offer")]
