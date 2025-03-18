@@ -14,6 +14,8 @@ use super::{
 #[serde(rename_all = "camelCase")]
 pub struct TransferRequest {
     #[builder(field)]
+    data_destination: Option<DataAddress>,
+    #[builder(field)]
     callback_addresses: Vec<CallbackAddress>,
     #[builder(default)]
     #[builder(into)]
@@ -24,12 +26,16 @@ pub struct TransferRequest {
     contract_id: String,
     #[builder(into)]
     transfer_type: String,
-    destination: Option<DataAddress>,
 }
 
 impl<S: transfer_request_builder::State> TransferRequestBuilder<S> {
     pub fn callback_address(mut self, callback_address: CallbackAddress) -> Self {
         self.callback_addresses.push(callback_address);
+        self
+    }
+
+    pub fn destination(mut self, data_destination: DataAddress) -> Self {
+        self.data_destination = Some(data_destination);
         self
     }
 }
