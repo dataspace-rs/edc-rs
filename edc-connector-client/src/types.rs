@@ -16,6 +16,7 @@ pub mod policy;
 pub mod properties;
 pub mod query;
 pub mod response;
+pub mod secret;
 pub mod transfer_process;
 
 #[derive(Deserialize, Serialize)]

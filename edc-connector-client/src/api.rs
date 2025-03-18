@@ -6,6 +6,7 @@ mod contract_negotiations;
 mod dataplanes;
 mod edrs;
 mod policies;
+mod secrets;
 mod transfer_process;
 
 pub use assets::AssetApi;
@@ -16,4 +17,5 @@ pub use contract_negotiations::ContractNegotiationApi;
 pub use dataplanes::DataPlaneApi;
 pub use edrs::EdrApi;
 pub use policies::PolicyApi;
+pub use secrets::SecretsApi;
 pub use transfer_process::TransferProcessApi;

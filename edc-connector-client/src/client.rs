@@ -6,7 +6,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::{
     api::{
         AssetApi, CatalogApi, ContractAgreementApi, ContractDefinitionApi, ContractNegotiationApi,
-        DataPlaneApi, EdrApi, PolicyApi, TransferProcessApi,
+        DataPlaneApi, EdrApi, PolicyApi, SecretsApi, TransferProcessApi,
     },
     error::{
         BuilderError, ManagementApiError, ManagementApiErrorDetail, ManagementApiErrorDetailKind,
@@ -183,6 +183,10 @@ impl EdcConnectorClient {
 
     pub fn edrs(&self) -> EdrApi<'_> {
         EdrApi::new(&self.0)
+    }
+
+    pub fn secrets(&self) -> SecretsApi<'_> {
+        SecretsApi::new(&self.0)
     }
 }
 
