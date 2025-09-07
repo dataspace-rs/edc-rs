@@ -26,7 +26,10 @@ mod catalog {
 
         let response = consumer.catalogue().request(&request).await.unwrap();
 
-        let dataset = response.datasets().iter().find(|ds| ds.id() == asset_id);
+        let dataset = response
+            .datasets()
+            .into_iter()
+            .find(|ds| ds.id() == asset_id);
 
         assert!(dataset.is_some());
     }

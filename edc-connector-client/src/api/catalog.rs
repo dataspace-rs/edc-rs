@@ -1,7 +1,7 @@
 use crate::{
     client::EdcConnectorClientInternal,
     types::{
-        catalog::{Catalog, CatalogRequest, Dataset, DatasetRequest},
+        catalog::{Catalog, CatalogRequest, DatasetOrCatalog, DatasetRequest},
         context::{WithContext, WithContextRef},
     },
     EdcResult,
@@ -22,10 +22,13 @@ impl<'a> CatalogApi<'a> {
             .map(|ctx| ctx.inner)
     }
 
-    pub async fn dataset(&self, request: &DatasetRequest) -> EdcResult<Dataset> {
+    pub async fn dataset(&self, request: &DatasetRequest) -> EdcResult<DatasetOrCatalog> {
         let url = self.get_endpoint(&["dataset", "request"]);
         self.0
-            .post::<_, WithContext<Dataset>>(url, &WithContextRef::default_context(request))
+            .post::<_, WithContext<DatasetOrCatalog>>(
+                url,
+                &WithContextRef::default_context(request),
+            )
             .await
             .map(|ctx| ctx.inner)
     }

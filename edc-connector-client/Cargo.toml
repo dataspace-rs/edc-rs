@@ -16,6 +16,7 @@ serde_json = {workspace = true}
 serde_with = {workspace = true}
 thiserror = {workspace=true}
 bon = {workspace=true}
+semver = { version = "1", features = ["serde"] }
 
 [dev-dependencies]
 tokio = {workspace=true, features = ["full"]}

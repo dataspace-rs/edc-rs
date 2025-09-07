@@ -125,7 +125,7 @@ mod get {
         assert_eq!(contract_negotiation_id, cn.id());
         assert_ne!(&ContractNegotiationState::Terminated, cn.state());
         assert_eq!(0, cn.callback_addresses().len());
-        assert_eq!("provider", cn.counter_party_id());
+        assert_eq!(Some("provider".to_string()), cn.counter_party_id().clone());
         assert_eq!(&ContractNegotiationKind::Consumer, cn.kind());
     }
 

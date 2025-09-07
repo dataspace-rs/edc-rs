@@ -47,7 +47,7 @@ mod initiate {
 
         let request = TransferRequest::builder()
             .counter_party_address(PROVIDER_PROTOCOL)
-            .contract_id(&Uuid::new_v4().to_string())
+            .contract_id(Uuid::new_v4().to_string())
             .transfer_type("HttpData-PULL")
             .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
             .build();
