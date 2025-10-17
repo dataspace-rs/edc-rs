@@ -5,7 +5,7 @@ members = [
 ]
 
 [workspace.dependencies]
-thiserror = "1.0"
+thiserror = "2.0"
 async-trait = "0.1.83"
 tracing = "0.1.41"
 serde={version = "1", features= ["derive"]}
