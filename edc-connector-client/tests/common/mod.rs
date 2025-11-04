@@ -22,9 +22,13 @@ pub const PROVIDER_PROTOCOL: &str = "http://provider-connector:9194/protocol";
 pub const PROVIDER_ID: &str = "provider";
 
 pub fn setup_provider_client() -> EdcConnectorClient {
+    setup_provider_client_with_auth(Auth::ApiToken("123456".to_string()))
+}
+
+pub fn setup_provider_client_with_auth(auth: Auth) -> EdcConnectorClient {
     EdcConnectorClient::builder()
         .management_url("http://localhost:29193/management")
-        .with_auth(Auth::api_token("123456"))
+        .with_auth(auth)
         .build()
         .unwrap()
 }

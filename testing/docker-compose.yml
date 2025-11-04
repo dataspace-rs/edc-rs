@@ -1,12 +1,14 @@
 services:
   consumer-connector:
-    image: ${CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/connector:0.11.1}
+    image: ${CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/connector:0.14.1}
     ports:
       - "19191:9191" # connector default
       - "19192:9192" # connector control
       - "19193:9193" # connector management
       - "19194:9194" # connector protocol
       - "19291:9291" # data-plane public
+      - "1045:1044" # data-plane public
+
     environment:
       EDC_VAULT: /config/vault.properties
       EDC_KEYSTORE: /config/vault-keys.p12
@@ -18,7 +20,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   provider-connector:
-    image: ${CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/connector:0.11.1}
+    image: ${CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/connector:0.14.1}
     ports:
       - "29191:9191" # connector default
       - "29192:9192" # connector control
