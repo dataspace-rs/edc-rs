@@ -22,6 +22,12 @@ mod auth {
 
         let response = client.assets().create(&asset).await;
 
-        assert!(matches!(response, Err(Error::ManagementApi(ManagementApiError { status_code: StatusCode::UNAUTHORIZED, error_detail: ManagementApiErrorDetailKind::Parsed(_)}))));
+        assert!(matches!(
+            response,
+            Err(Error::ManagementApi(ManagementApiError {
+                status_code: StatusCode::UNAUTHORIZED,
+                error_detail: ManagementApiErrorDetailKind::Parsed(_)
+            }))
+        ));
     }
 }
