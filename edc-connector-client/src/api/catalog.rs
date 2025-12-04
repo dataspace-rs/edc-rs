@@ -2,7 +2,7 @@ use crate::{
     client::EdcConnectorClientInternal,
     types::{
         catalog::{Catalog, CatalogRequest, Dataset, DatasetRequest},
-        context::{WithContext, WithContextRef},
+        context::WithContext,
     },
     EdcResult,
 };
@@ -15,26 +15,19 @@ impl<'a> CatalogApi<'a> {
     }
 
     pub async fn request(&self, request: &CatalogRequest) -> EdcResult<Catalog> {
-        let url = self.get_endpoint(&["request"]);
+        let url = self.0.path_for(&["catalog", "request"]);
+
         self.0
-            .post::<_, WithContext<Catalog>>(url, &WithContextRef::default_context(request))
+            .post::<_, WithContext<Catalog>>(url, &self.0.context_for(request))
             .await
             .map(|ctx| ctx.inner)
     }
 
     pub async fn dataset(&self, request: &DatasetRequest) -> EdcResult<Dataset> {
-        let url = self.get_endpoint(&["dataset", "request"]);
+        let url = self.0.path_for(&["catalog", "dataset", "request"]);
         self.0
-            .post::<_, WithContext<Dataset>>(url, &WithContextRef::default_context(request))
+            .post::<_, WithContext<Dataset>>(url, &self.0.context_for(request))
             .await
             .map(|ctx| ctx.inner)
-    }
-
-    fn get_endpoint(&self, paths: &[&str]) -> String {
-        [self.0.management_url.as_str(), "v3", "catalog"]
-            .into_iter()
-            .chain(paths.iter().copied())
-            .collect::<Vec<_>>()
-            .join("/")
     }
 }

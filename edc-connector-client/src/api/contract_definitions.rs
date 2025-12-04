@@ -1,7 +1,7 @@
 use crate::{
     client::EdcConnectorClientInternal,
     types::{
-        context::{WithContext, WithContextRef},
+        context::WithContext,
         contract_definition::{ContractDefinition, NewContractDefinition},
         query::Query,
         response::IdResponse,
@@ -20,18 +20,18 @@ impl<'a> ContractDefinitionApi<'a> {
         &self,
         contract_definition: &NewContractDefinition,
     ) -> EdcResult<IdResponse<String>> {
-        let url = self.get_endpoint(&[]);
+        let url = self.0.path_for(&["contractdefinitions"]);
         self.0
             .post::<_, WithContext<IdResponse<String>>>(
                 url,
-                &WithContextRef::default_context(contract_definition),
+                &self.0.context_for(&contract_definition),
             )
             .await
             .map(|ctx| ctx.inner)
     }
 
     pub async fn get(&self, id: &str) -> EdcResult<ContractDefinition> {
-        let url = self.get_endpoint(&[id]);
+        let url = self.0.path_for(&["contractdefinitions", id]);
         self.0
             .get::<WithContext<ContractDefinition>>(url)
             .await
@@ -39,33 +39,22 @@ impl<'a> ContractDefinitionApi<'a> {
     }
 
     pub async fn update(&self, contract_definition: &ContractDefinition) -> EdcResult<()> {
-        let url = self.get_endpoint(&[]);
+        let url = self.0.path_for(&["contractdefinitions"]);
         self.0
-            .put(url, &WithContextRef::default_context(contract_definition))
+            .put(url, &self.0.context_for(&contract_definition))
             .await
     }
 
     pub async fn query(&self, query: Query) -> EdcResult<Vec<ContractDefinition>> {
-        let url = self.get_endpoint(&["request"]);
+        let url = self.0.path_for(&["contractdefinitions", "request"]);
         self.0
-            .post::<_, Vec<WithContext<ContractDefinition>>>(
-                url,
-                &WithContextRef::default_context(&query),
-            )
+            .post::<_, Vec<WithContext<ContractDefinition>>>(url, &self.0.context_for(&query))
             .await
             .map(|results| results.into_iter().map(|ctx| ctx.inner).collect())
     }
 
     pub async fn delete(&self, id: &str) -> EdcResult<()> {
-        let url = self.get_endpoint(&[id]);
+        let url = self.0.path_for(&["contractdefinitions", id]);
         self.0.del(url).await
-    }
-
-    fn get_endpoint(&self, paths: &[&str]) -> String {
-        [self.0.management_url.as_str(), "v3", "contractdefinitions"]
-            .into_iter()
-            .chain(paths.iter().copied())
-            .collect::<Vec<_>>()
-            .join("/")
     }
 }

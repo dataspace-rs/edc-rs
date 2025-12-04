@@ -9,17 +9,25 @@ mod initiate {
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::seed_contract_agreement;
     use crate::common::{
-        setup_consumer_client, setup_provider_client, wait_for_transfer_state, PROVIDER_PROTOCOL,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, wait_for_transfer_state, ClientParams,
+        PROVIDER_PROTOCOL,
     };
+    use crate::common::{seed_contract_agreement, setup_client};
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_initiate_a_transfer_process() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_initiate_a_transfer_process(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (agreement_id, _, _) = seed_contract_agreement(&consumer, &provider).await;
 
@@ -41,9 +49,14 @@ mod initiate {
         wait_for_transfer_state(&consumer, response.id(), TransferProcessState::Started).await;
     }
 
+    #[rstest]
+    #[case(consumer_v3())]
+    #[case(consumer_v4())]
     #[tokio::test]
-    async fn should_fail_to_initiate_a_transfer_process_with_wrong_contract() {
-        let consumer = setup_consumer_client();
+    async fn should_fail_to_initiate_a_transfer_process_with_wrong_contract(
+        #[case] consumer: ClientParams,
+    ) {
+        let consumer = setup_client(consumer);
 
         let request = TransferRequest::builder()
             .counter_party_address(PROVIDER_PROTOCOL)
@@ -71,16 +84,24 @@ mod get {
         data_address::DataAddress,
         transfer_process::{TransferProcessKind, TransferProcessState, TransferRequest},
     };
+    use rstest::rstest;
 
-    use crate::common::seed_contract_agreement;
     use crate::common::{
-        setup_consumer_client, setup_provider_client, wait_for_transfer_state, PROVIDER_PROTOCOL,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, wait_for_transfer_state, ClientParams,
+        PROVIDER_PROTOCOL,
     };
+    use crate::common::{seed_contract_agreement, setup_client};
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_get_a_transfer_process() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_get_a_transfer_process(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (agreement_id, _, asset_id) = seed_contract_agreement(&consumer, &provider).await;
 
@@ -137,16 +158,23 @@ mod query {
         query::Query,
         transfer_process::{TransferProcessState, TransferRequest},
     };
+    use rstest::rstest;
 
     use crate::common::{
-        seed_contract_agreement, setup_consumer_client, setup_provider_client,
-        wait_for_transfer_state, PROVIDER_PROTOCOL,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_agreement, setup_client,
+        wait_for_transfer_state, ClientParams, PROVIDER_PROTOCOL,
     };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_query_transfer_processes() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_query_transfer_processes(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (agreement_id, _, asset_id) = seed_contract_agreement(&consumer, &provider).await;
 
@@ -183,16 +211,23 @@ mod terminate {
         data_address::DataAddress,
         transfer_process::{TransferProcessState, TransferRequest},
     };
+    use rstest::rstest;
 
     use crate::common::{
-        seed_contract_agreement, setup_consumer_client, setup_provider_client,
-        wait_for_transfer_state, PROVIDER_PROTOCOL,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_agreement, setup_client,
+        wait_for_transfer_state, ClientParams, PROVIDER_PROTOCOL,
     };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_terminate_transfer_processes() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_terminate_transfer_processes(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (agreement_id, _, _) = seed_contract_agreement(&consumer, &provider).await;
 
@@ -229,16 +264,23 @@ mod suspend {
         data_address::DataAddress,
         transfer_process::{TransferProcessState, TransferRequest},
     };
+    use rstest::rstest;
 
     use crate::common::{
-        seed_contract_agreement, setup_consumer_client, setup_provider_client,
-        wait_for_transfer_state, PROVIDER_PROTOCOL,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_agreement, setup_client,
+        wait_for_transfer_state, ClientParams, PROVIDER_PROTOCOL,
     };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_suspend_and_resume_transfer_processes() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_suspend_and_resume_transfer_processes(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (agreement_id, _, _) = seed_contract_agreement(&consumer, &provider).await;
 

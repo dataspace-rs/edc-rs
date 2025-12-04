@@ -3,16 +3,23 @@ mod common;
 mod get {
 
     use edc_connector_client::types::contract_negotiation::ContractNegotiationState;
+    use rstest::rstest;
 
     use crate::common::{
-        seed_contract_negotiation, setup_consumer_client, setup_provider_client,
-        wait_for_negotiation_state,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_negotiation,
+        setup_client, wait_for_negotiation_state, ClientParams,
     };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_get_a_contract_agreement() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_get_a_contract_agreement(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (contract_negotiation_id, _) = seed_contract_negotiation(&consumer, &provider).await;
 
@@ -45,16 +52,23 @@ mod query {
     use edc_connector_client::types::{
         contract_negotiation::ContractNegotiationState, query::Query,
     };
+    use rstest::rstest;
 
     use crate::common::{
-        seed_contract_negotiation, setup_consumer_client, setup_provider_client,
-        wait_for_negotiation_state,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_negotiation,
+        setup_client, wait_for_negotiation_state, ClientParams,
     };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_query_contract_agreements() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_query_contract_agreements(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (contract_negotiation_id, asset_id) =
             seed_contract_negotiation(&consumer, &provider).await;

@@ -5,6 +5,8 @@ use super::properties::{PropertyValue, ToValue};
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Query {
+    #[serde(rename = "@type")]
+    ty: String,
     offset: u32,
     limit: u32,
     #[serde(flatten)]
@@ -46,6 +48,7 @@ impl QueryBuilder {
         T: ToValue,
     {
         self.0.filter_expression.push(Criterion {
+            ty: "Criterion".to_string(),
             operand_left: left.to_string(),
             operator: operator.to_string(),
             operand_right: PropertyValue(right.into_value()),
@@ -105,6 +108,8 @@ pub enum SortOrder {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Criterion {
+    #[serde(rename = "@type")]
+    ty: String,
     operand_left: String,
     operator: String,
     operand_right: PropertyValue,
@@ -113,6 +118,7 @@ pub struct Criterion {
 impl Criterion {
     pub fn new<T: ToValue>(operand_left: &str, operator: &str, operand_right: T) -> Self {
         Self {
+            ty: "Criterion".to_string(),
             operand_left: operand_left.to_string(),
             operator: operator.to_string(),
             operand_right: PropertyValue(operand_right.into_value()),
@@ -135,6 +141,7 @@ impl Criterion {
 impl Default for Query {
     fn default() -> Self {
         Self {
+            ty: "QuerySpec".to_string(),
             offset: 0,
             limit: 50,
             sort: None,

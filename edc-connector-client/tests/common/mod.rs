@@ -2,6 +2,7 @@
 
 use std::{future::Future, time::Duration};
 
+use bon::Builder;
 use edc_connector_client::{
     types::{
         asset::NewAsset,
@@ -9,17 +10,52 @@ use edc_connector_client::{
         contract_definition::NewContractDefinition,
         contract_negotiation::{ContractNegotiationState, ContractRequest},
         data_address::DataAddress,
-        policy::{NewPolicyDefinition, Policy, PolicyKind, Target},
+        policy::{Action, NewPolicyDefinition, Permission, Policy, PolicyKind, Target},
         query::Criterion,
         transfer_process::{TransferProcessState, TransferRequest},
     },
-    Auth, EdcConnectorClient, EDC_NAMESPACE,
+    Auth, EdcConnectorApiVersion, EdcConnectorClient, EDC_NAMESPACE,
 };
 use tokio::time::sleep;
 use uuid::Uuid;
 
 pub const PROVIDER_PROTOCOL: &str = "http://provider-connector:9194/protocol";
 pub const PROVIDER_ID: &str = "provider";
+
+#[derive(Builder)]
+pub struct ClientParams {
+    pub management_url: String,
+    #[builder(default = EdcConnectorApiVersion::V3)]
+    pub version: EdcConnectorApiVersion,
+}
+
+pub fn provider_v3() -> ClientParams {
+    ClientParams::builder()
+        .management_url("http://localhost:29193/management".to_string())
+        .version(EdcConnectorApiVersion::V3)
+        .build()
+}
+
+pub fn consumer_v3() -> ClientParams {
+    ClientParams::builder()
+        .management_url("http://localhost:19193/management".to_string())
+        .version(EdcConnectorApiVersion::V3)
+        .build()
+}
+
+pub fn provider_v4() -> ClientParams {
+    ClientParams::builder()
+        .management_url("http://localhost:29193/management".to_string())
+        .version(EdcConnectorApiVersion::V4)
+        .build()
+}
+
+pub fn consumer_v4() -> ClientParams {
+    ClientParams::builder()
+        .management_url("http://localhost:19193/management".to_string())
+        .version(EdcConnectorApiVersion::V4)
+        .build()
+}
 
 pub fn setup_provider_client() -> EdcConnectorClient {
     setup_provider_client_with_auth(Auth::ApiToken("123456".to_string()))
@@ -34,6 +70,23 @@ pub fn setup_provider_client_with_auth(auth: Auth) -> EdcConnectorClient {
 }
 
 pub fn setup_consumer_client() -> EdcConnectorClient {
+    EdcConnectorClient::builder()
+        .management_url("http://localhost:19193/management")
+        .with_auth(Auth::api_token("123456"))
+        .build()
+        .unwrap()
+}
+
+pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
+    EdcConnectorClient::builder()
+        .management_url(&params.management_url)
+        .with_auth(Auth::api_token("123456"))
+        .version(params.version)
+        .build()
+        .unwrap()
+}
+
+pub fn setup_consumer_client_v4() -> EdcConnectorClient {
     EdcConnectorClient::builder()
         .management_url("http://localhost:19193/management")
         .with_auth(Auth::api_token("123456"))
@@ -57,7 +110,11 @@ pub async fn seed(client: &EdcConnectorClient) -> (String, String, String) {
 
     let policy_definition = NewPolicyDefinition::builder()
         .id(Uuid::new_v4().to_string().as_str())
-        .policy(Policy::builder().build())
+        .policy(
+            Policy::builder()
+                .permission(Permission::builder().action(Action::simple("use")).build())
+                .build(),
+        )
         .build();
 
     let policy_response = client.policies().create(&policy_definition).await.unwrap();
@@ -94,6 +151,7 @@ pub async fn seed_contract_negotiation(
 
     let dataset_request = DatasetRequest::builder()
         .counter_party_address(PROVIDER_PROTOCOL)
+        .counter_party_id(PROVIDER_ID)
         .id(&asset_id)
         .build();
 
@@ -113,7 +171,8 @@ pub async fn seed_contract_negotiation(
                 .id(offer_id)
                 .kind(PolicyKind::Offer)
                 .assigner(PROVIDER_ID)
-                .target(Target::id(&asset_id))
+                .target(Target::simple(&asset_id))
+                .permission(Permission::builder().action(Action::simple("use")).build())
                 .build(),
         )
         .build();

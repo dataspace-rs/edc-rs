@@ -26,6 +26,9 @@ pub struct TransferRequest {
     contract_id: String,
     #[builder(into)]
     transfer_type: String,
+    #[builder(default = "TransferRequest".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
 }
 
 impl<S: transfer_request_builder::State> TransferRequestBuilder<S> {
@@ -159,18 +162,24 @@ impl TransferState {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminateTransfer {
     #[serde(rename = "@id")]
     pub(crate) id: String,
     pub(crate) reason: String,
+    #[builder(default = "TerminateTransfer".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct SuspendTransfer {
     #[serde(rename = "@id")]
     pub(crate) id: String,
     pub(crate) reason: String,
+    #[builder(default = "SuspendTransfer".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
 }

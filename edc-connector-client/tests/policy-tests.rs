@@ -5,13 +5,17 @@ mod create {
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_create_a_policy_definition() {
-        let client = setup_provider_client();
+    async fn should_create_a_policy_definition(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
 
         let id = Uuid::new_v4().to_string();
 
@@ -26,9 +30,14 @@ mod create {
         assert!(response.created_at() > 0);
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_failt_to_create_an_policy_definition_when_existing() {
-        let client = setup_provider_client();
+    async fn should_failt_to_create_an_policy_definition_when_existing(
+        #[case] provider: ClientParams,
+    ) {
+        let client = setup_client(provider);
 
         let id = Uuid::new_v4().to_string();
         let policy_definition = NewPolicyDefinition::builder()
@@ -59,13 +68,17 @@ mod delete {
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_delete_a_policy_definition() {
-        let client = setup_provider_client();
+    async fn should_delete_a_policy_definition(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let policy_definition = NewPolicyDefinition::builder()
             .id(&id)
@@ -79,9 +92,14 @@ mod delete {
         assert!(response.is_ok());
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_delete_policy_definition_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_delete_policy_definition_when_not_existing(
+        #[case] provider: ClientParams,
+    ) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let response = client.policies().delete(&id).await;
@@ -99,24 +117,29 @@ mod delete {
 mod get {
     use edc_connector_client::{
         types::policy::{
-            AtomicConstraint, Constraint, NewPolicyDefinition, Operator, Permission, Policy,
-            PolicyKind,
+            Action, AtomicConstraint, Constraint, LeftOperand, NewPolicyDefinition, Operator,
+            Permission, Policy, PolicyKind,
         },
-        Error, ManagementApiError, ManagementApiErrorDetailKind,
+        EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_get_a_policy_definition() {
-        let client = setup_provider_client();
+    async fn should_get_a_policy_definition(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let policy = Policy::builder()
             .permission(
                 Permission::builder()
+                    .action(Action::simple("use"))
                     .constraint(Constraint::Atomic(AtomicConstraint::new(
                         "foo", "eq", "bar",
                     )))
@@ -138,24 +161,46 @@ mod get {
 
         let permission = &definition.policy().permissions()[0];
 
-        assert_eq!(permission.action().id(), "odrl:use");
         assert_eq!(permission.constraints().len(), 1);
 
         let constraint = &permission.constraints()[0];
 
-        assert_eq!(
-            constraint,
-            &Constraint::Atomic(AtomicConstraint::new_with_operator(
-                "edc:foo",
-                Operator::id("odrl:eq"),
-                "bar"
-            ))
-        );
+        match client.api_version() {
+            EdcConnectorApiVersion::V3 => {
+                assert_eq!(permission.action().id(), "odrl:use");
+
+                assert_eq!(
+                    constraint,
+                    &Constraint::Atomic(AtomicConstraint::new_with_operator(
+                        "edc:foo",
+                        Operator::id("odrl:eq"),
+                        "bar"
+                    ))
+                );
+            }
+            EdcConnectorApiVersion::V4 => {
+                assert_eq!(permission.action().id(), "use");
+
+                assert_eq!(
+                    constraint,
+                    &Constraint::Atomic(AtomicConstraint::new_with_operator(
+                        LeftOperand::simple("foo"),
+                        Operator::simple("eq"),
+                        "bar"
+                    ))
+                );
+            }
+        }
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_get_a_policy_definition_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_get_a_policy_definition_when_not_existing(
+        #[case] provider: ClientParams,
+    ) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let response = client.policies().get(&id).await;
@@ -172,17 +217,21 @@ mod get {
 
 mod update {
     use edc_connector_client::{
-        types::policy::{NewPolicyDefinition, Permission, Policy, PolicyDefinition},
+        types::policy::{Action, NewPolicyDefinition, Permission, Policy, PolicyDefinition},
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_update_policy_definition() {
-        let client = setup_provider_client();
+    async fn should_update_policy_definition(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let new_policy = NewPolicyDefinition::builder()
             .id(&id)
@@ -195,7 +244,7 @@ mod update {
             .id(&id)
             .policy(
                 Policy::builder()
-                    .permission(Permission::builder().build())
+                    .permission(Permission::builder().action(Action::simple("use")).build())
                     .build(),
             )
             .build();
@@ -207,16 +256,21 @@ mod update {
         assert_eq!(1, definition.policy().permissions().len());
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_update_an_policy_definition_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_update_an_policy_definition_when_not_existing(
+        #[case] provider: ClientParams,
+    ) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let updated_policy = PolicyDefinition::builder()
             .id(&id)
             .policy(
                 Policy::builder()
-                    .permission(Permission::builder().build())
+                    .permission(Permission::builder().action(Action::simple("use")).build())
                     .build(),
             )
             .build();
@@ -238,13 +292,17 @@ mod query {
         policy::{NewPolicyDefinition, Policy},
         query::Query,
     };
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_query_policy_definitions() {
-        let client = setup_provider_client();
+    async fn should_query_policy_definitions(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let new_policy = NewPolicyDefinition::builder()
             .id(&id)

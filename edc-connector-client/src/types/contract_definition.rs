@@ -22,6 +22,9 @@ pub struct ContractDefinition {
     #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
+    #[builder(default = "ContractDefinition".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
     #[builder(into)]
     access_policy_id: String,
     #[builder(into)]
@@ -75,6 +78,9 @@ pub struct NewContractDefinition {
     #[builder(into)]
     #[serde(rename = "@id")]
     id: Option<String>,
+    #[builder(default = "ContractDefinition".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
     #[builder(into)]
     access_policy_id: String,
     #[builder(into)]

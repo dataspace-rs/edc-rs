@@ -17,6 +17,9 @@ pub struct PolicyDefinition {
     #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
+    #[builder(default = "PolicyDefinition".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
     policy: Policy,
 }
 
@@ -56,6 +59,9 @@ pub struct NewPolicyDefinition {
     #[builder(into)]
     #[serde(rename = "@id")]
     id: Option<String>,
+    #[builder(default = "PolicyDefinition".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
     policy: Policy,
 }
 
@@ -69,40 +75,23 @@ impl<S: new_policy_definition_builder::State> NewPolicyDefinitionBuilder<S> {
     }
 }
 
-impl Default for PolicyDefinition {
-    fn default() -> Self {
-        Self {
-            id: String::default(),
-            policy: Policy::builder().build(),
-            private_properties: Properties::default(),
-        }
-    }
-}
-
-impl Default for NewPolicyDefinition {
-    fn default() -> Self {
-        Self {
-            id: Option::default(),
-            policy: Policy::builder().build(),
-            private_properties: Properties::default(),
-        }
-    }
-}
-
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Builder)]
 pub struct Policy {
     #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "permission", alias = "odrl:permission", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     permissions: Vec<Permission>,
     #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "obligation", alias = "odrl:obligation", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     obligations: Vec<Obligation>,
     #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[serde(rename = "prohibition", alias = "odrl:prohibition", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     prohibitions: Vec<Prohibition>,
     #[builder(into)]
     #[serde(rename = "@id")]
@@ -113,12 +102,15 @@ pub struct Policy {
     kind: PolicyKind,
     #[builder(into)]
     #[serde(alias = "odrl:assignee")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     assignee: Option<String>,
     #[builder(into)]
     #[serde(alias = "odrl:assigner")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     assigner: Option<String>,
     #[builder(into)]
     #[serde(alias = "odrl:target")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     target: Option<Target>,
 }
 
@@ -345,17 +337,17 @@ impl Default for Action {
 }
 
 impl Action {
+    pub fn new(kind: String) -> Self {
+        Action::Id { id: kind }
+    }
+    pub fn simple(action: &str) -> Action {
+        Action::Simple(action.to_string())
+    }
     pub fn id(&self) -> &String {
         match self {
             Action::Simple(id) => id,
             Action::Id { id } => id,
         }
-    }
-}
-
-impl Action {
-    pub fn new(kind: String) -> Self {
-        Action::Id { id: kind }
     }
 }
 

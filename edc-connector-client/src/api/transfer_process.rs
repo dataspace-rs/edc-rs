@@ -1,7 +1,7 @@
 use crate::{
     client::EdcConnectorClientInternal,
     types::{
-        context::{WithContext, WithContextRef},
+        context::WithContext,
         query::Query,
         response::IdResponse,
         transfer_process::{
@@ -23,18 +23,15 @@ impl<'a> TransferProcessApi<'a> {
         &self,
         transfer_request: &TransferRequest,
     ) -> EdcResult<IdResponse<String>> {
-        let url = self.get_endpoint(&[]);
+        let url = self.0.path_for(&["transferprocesses"]);
         self.0
-            .post::<_, WithContext<IdResponse<String>>>(
-                url,
-                &WithContextRef::default_context(transfer_request),
-            )
+            .post::<_, WithContext<IdResponse<String>>>(url, &self.0.context_for(&transfer_request))
             .await
             .map(|ctx| ctx.inner)
     }
 
     pub async fn get(&self, id: &str) -> EdcResult<TransferProcess> {
-        let url = self.get_endpoint(&[id]);
+        let url = self.0.path_for(&["transferprocesses", id]);
         self.0
             .get::<WithContext<TransferProcess>>(url)
             .await
@@ -42,7 +39,7 @@ impl<'a> TransferProcessApi<'a> {
     }
 
     pub async fn get_state(&self, id: &str) -> EdcResult<TransferProcessState> {
-        let url = self.get_endpoint(&[id]);
+        let url = self.0.path_for(&["transferprocesses", id]);
         self.0
             .get::<WithContext<TransferState>>(url)
             .await
@@ -50,55 +47,46 @@ impl<'a> TransferProcessApi<'a> {
     }
 
     pub async fn query(&self, query: Query) -> EdcResult<Vec<TransferProcess>> {
-        let url = self.get_endpoint(&["request"]);
+        let url = self.0.path_for(&["transferprocesses", "request"]);
+
         self.0
-            .post::<_, Vec<WithContext<TransferProcess>>>(
-                url,
-                &WithContextRef::default_context(&query),
-            )
+            .post::<_, Vec<WithContext<TransferProcess>>>(url, &self.0.context_for(&query))
             .await
             .map(|results| results.into_iter().map(|ctx| ctx.inner).collect())
     }
 
     pub async fn terminate(&self, id: &str, reason: &str) -> EdcResult<()> {
-        let url = self.get_endpoint(&[id, "terminate"]);
+        let url = self.0.path_for(&["transferprocesses", id, "terminate"]);
 
-        let request = TerminateTransfer {
-            id: id.to_string(),
-            reason: reason.to_string(),
-        };
+        let request = TerminateTransfer::builder()
+            .id(id.to_string())
+            .reason(reason.to_string())
+            .build();
         self.0
-            .post_no_response(url, &WithContextRef::default_context(&request))
+            .post_no_response(url, &self.0.context_for(&request))
             .await
             .map(|_| ())
     }
 
     pub async fn suspend(&self, id: &str, reason: &str) -> EdcResult<()> {
-        let url = self.get_endpoint(&[id, "suspend"]);
+        let url = self.0.path_for(&["transferprocesses", id, "suspend"]);
 
-        let request = SuspendTransfer {
-            id: id.to_string(),
-            reason: reason.to_string(),
-        };
+        let request = SuspendTransfer::builder()
+            .id(id.to_string())
+            .reason(reason.to_string())
+            .build();
+
         self.0
-            .post_no_response(url, &WithContextRef::default_context(&request))
+            .post_no_response(url, &self.0.context_for(&request))
             .await
             .map(|_| ())
     }
 
     pub async fn resume(&self, id: &str) -> EdcResult<()> {
-        let url = self.get_endpoint(&[id, "resume"]);
+        let url = self.0.path_for(&["transferprocesses", id, "resume"]);
         self.0
             .post_no_response(url, &Option::<()>::None)
             .await
             .map(|_| ())
-    }
-
-    fn get_endpoint(&self, paths: &[&str]) -> String {
-        [self.0.management_url.as_str(), "v3", "transferprocesses"]
-            .into_iter()
-            .chain(paths.iter().copied())
-            .collect::<Vec<_>>()
-            .join("/")
     }
 }

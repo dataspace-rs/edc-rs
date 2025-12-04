@@ -9,7 +9,7 @@ mod auth {
     use crate::common::setup_provider_client_with_auth;
 
     #[tokio::test]
-    async fn should_failt_to_create_an_asset() {
+    async fn should_fail_to_create_an_asset() {
         let client = setup_provider_client_with_auth(edc_connector_client::Auth::NoAuth);
 
         let id = Uuid::new_v4().to_string();

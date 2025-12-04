@@ -6,13 +6,17 @@ mod create {
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_create_an_asset() {
-        let client = setup_provider_client();
+    async fn should_create_an_asset(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
 
         let id = Uuid::new_v4().to_string();
 
@@ -28,9 +32,12 @@ mod create {
         assert!(response.created_at() > 0);
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_failt_to_create_an_asset_when_existing() {
-        let client = setup_provider_client();
+    async fn should_failt_to_create_an_asset_when_existing(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
 
         let id = Uuid::new_v4().to_string();
 
@@ -63,13 +70,17 @@ mod delete {
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_delete_an_asset() {
-        let client = setup_provider_client();
+    async fn should_delete_an_asset(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let new_asset = NewAsset::builder()
             .id(&id)
@@ -84,9 +95,12 @@ mod delete {
         assert!(response.is_ok());
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_delete_an_asset_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_delete_an_asset_when_not_existing(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let response = client.assets().delete(&id).await;
@@ -107,13 +121,17 @@ mod get {
         ConversionError, Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_get_an_asset() {
-        let client = setup_provider_client();
+    async fn should_get_an_asset(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let new_asset = NewAsset::builder()
             .id(&id)
@@ -128,9 +146,12 @@ mod get {
         assert_eq!("bar", asset.property::<String>("foo").unwrap().unwrap())
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_get_an_asset_with_array_property() {
-        let client = setup_provider_client();
+    async fn should_get_an_asset_with_array_property(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
 
         let id = Uuid::new_v4().to_string();
 
@@ -161,9 +182,13 @@ mod get {
             Err(ConversionError { .. })
         ));
     }
+
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_get_an_asset_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_get_an_asset_when_not_existing(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let response = client.assets().get(&id).await;
@@ -187,13 +212,17 @@ mod update {
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_update_an_asset() {
-        let client = setup_provider_client();
+    async fn should_update_an_asset(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let new_asset = NewAsset::builder()
             .id(&id)
@@ -216,9 +245,12 @@ mod update {
         assert_eq!("bar2", asset.property::<String>("foo").unwrap().unwrap())
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_update_an_asset_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_update_an_asset_when_not_existing(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let updated_asset = Asset::builder()
@@ -248,13 +280,17 @@ mod query {
         },
         EDC_NAMESPACE,
     };
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_query_an_asset() {
-        let client = setup_provider_client();
+    async fn should_query_an_asset(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let new_asset = NewAsset::builder()
             .id(&id)
@@ -288,9 +324,12 @@ mod query {
         )
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_query_an_asset_with_sort() {
-        let client = setup_provider_client();
+    async fn should_query_an_asset_with_sort(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let id_1 = Uuid::new_v4().to_string();
         let group = Uuid::new_v4().to_string();
@@ -326,9 +365,12 @@ mod query {
         )
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_query_an_asset_with_limit() {
-        let client = setup_provider_client();
+    async fn should_query_an_asset_with_limit(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let id_1 = Uuid::new_v4().to_string();
         let group = Uuid::new_v4().to_string();

@@ -19,6 +19,9 @@ pub struct Asset {
     #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
+    #[builder(default = "Asset".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
     data_address: DataAddress,
 }
 
@@ -33,6 +36,9 @@ pub struct NewAsset {
     #[builder(into)]
     #[serde(rename = "@id")]
     id: Option<String>,
+    #[builder(default = "Asset".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
     data_address: DataAddress,
 }
 

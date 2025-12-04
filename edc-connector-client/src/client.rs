@@ -11,24 +11,47 @@ use crate::{
     error::{
         BuilderError, ManagementApiError, ManagementApiErrorDetail, ManagementApiErrorDetailKind,
     },
-    EdcResult, Error,
+    types::context::WithContextRef,
+    Auth, EdcResult, Error,
 };
 
 #[derive(Clone)]
 pub struct EdcConnectorClient(Arc<EdcConnectorClientInternal>);
 
+#[derive(Clone)]
+pub enum EdcConnectorApiVersion {
+    V3,
+    V4,
+}
+
+impl EdcConnectorApiVersion {
+    pub fn as_str(&self) -> &str {
+        match self {
+            EdcConnectorApiVersion::V3 => "v3",
+            EdcConnectorApiVersion::V4 => "v4beta",
+        }
+    }
+}
+
 pub(crate) struct EdcConnectorClientInternal {
     client: Client,
     pub(crate) management_url: String,
     pub(crate) auth: Auth,
+    pub(crate) version: EdcConnectorApiVersion,
 }
 
 impl EdcConnectorClientInternal {
-    pub(crate) fn new(client: Client, management_url: String, auth: Auth) -> Self {
+    pub(crate) fn new(
+        client: Client,
+        management_url: String,
+        auth: Auth,
+        version: EdcConnectorApiVersion,
+    ) -> Self {
         Self {
             client,
             management_url,
             auth,
+            version,
         }
     }
 
@@ -37,6 +60,7 @@ impl EdcConnectorClientInternal {
             .client
             .get(path.as_ref())
             .authenticated(&self.auth)
+            .await?
             .send()
             .await?;
 
@@ -49,6 +73,7 @@ impl EdcConnectorClientInternal {
             .put(path.as_ref())
             .json(body)
             .authenticated(&self.auth)
+            .await?
             .send()
             .await?;
 
@@ -60,6 +85,7 @@ impl EdcConnectorClientInternal {
             .client
             .delete(path.as_ref())
             .authenticated(&self.auth)
+            .await?
             .send()
             .await?;
 
@@ -98,6 +124,7 @@ impl EdcConnectorClientInternal {
             .post(path.as_ref())
             .json(body)
             .authenticated(&self.auth)
+            .await?
             .send()
             .await?;
 
@@ -126,6 +153,35 @@ impl EdcConnectorClientInternal {
             }))
         }
     }
+
+    pub(crate) fn path_for(&self, paths: &[&str]) -> String {
+        [self.management_url.as_str(), self.version.as_str()]
+            .into_iter()
+            .chain(paths.iter().copied())
+            .collect::<Vec<_>>()
+            .join("/")
+    }
+
+    pub(crate) fn context_for<'a, T>(&'a self, body: &'a T) -> WithContextRef<'a, T> {
+        self.context_for_with_opts(body, false)
+    }
+
+    pub(crate) fn context_for_with_opts<'a, T>(
+        &'a self,
+        body: &'a T,
+        include_odrl: bool,
+    ) -> WithContextRef<'a, T> {
+        match self.version {
+            EdcConnectorApiVersion::V3 => {
+                if include_odrl {
+                    WithContextRef::odrl_context(body)
+                } else {
+                    WithContextRef::default_context(body)
+                }
+            }
+            EdcConnectorApiVersion::V4 => WithContextRef::edc_v4_context(body),
+        }
+    }
 }
 
 async fn as_json<R: DeserializeOwned>(response: Response) -> EdcResult<R> {
@@ -137,11 +193,17 @@ async fn empty(_response: Response) -> EdcResult<()> {
 }
 
 impl EdcConnectorClient {
-    pub(crate) fn new(client: Client, management_url: String, auth: Auth) -> Self {
+    pub(crate) fn new(
+        client: Client,
+        management_url: String,
+        auth: Auth,
+        version: EdcConnectorApiVersion,
+    ) -> Self {
         Self(Arc::new(EdcConnectorClientInternal::new(
             client,
             management_url,
             auth,
+            version,
         )))
     }
 
@@ -188,23 +250,16 @@ impl EdcConnectorClient {
     pub fn secrets(&self) -> SecretsApi<'_> {
         SecretsApi::new(&self.0)
     }
-}
 
-#[derive(Clone)]
-pub enum Auth {
-    NoAuth,
-    ApiToken(String),
-}
-
-impl Auth {
-    pub fn api_token(token: impl Into<String>) -> Auth {
-        Auth::ApiToken(token.into())
+    pub fn api_version(&self) -> EdcConnectorApiVersion {
+        self.0.version.clone()
     }
 }
 
 pub struct EdcClientConnectorBuilder {
     management_url: Option<String>,
     auth: Auth,
+    version: EdcConnectorApiVersion,
 }
 
 impl EdcClientConnectorBuilder {
@@ -218,12 +273,23 @@ impl EdcClientConnectorBuilder {
         self
     }
 
+    pub fn version(mut self, version: EdcConnectorApiVersion) -> Self {
+        self.version = version;
+        self
+    }
+
     pub fn build(self) -> Result<EdcConnectorClient, BuilderError> {
         let url = self
             .management_url
             .ok_or_else(|| BuilderError::missing_property("management_url"))?;
         let client = Client::new();
-        Ok(EdcConnectorClient::new(client, url, self.auth))
+
+        Ok(EdcConnectorClient::new(
+            client,
+            url,
+            self.auth,
+            self.version,
+        ))
     }
 }
 
@@ -232,19 +298,20 @@ impl Default for EdcClientConnectorBuilder {
         Self {
             management_url: Default::default(),
             auth: Auth::NoAuth,
+            version: EdcConnectorApiVersion::V3,
         }
     }
 }
 
-trait BuilderExt {
-    fn authenticated(self, auth: &Auth) -> Self;
+trait BuilderExt: Sized {
+    async fn authenticated(self, auth: &Auth) -> EdcResult<Self>;
 }
 
 impl BuilderExt for RequestBuilder {
-    fn authenticated(self, auth: &Auth) -> Self {
+    async fn authenticated(self, auth: &Auth) -> EdcResult<Self> {
         match auth {
-            Auth::NoAuth => self,
-            Auth::ApiToken(token) => self.header("X-Api-Key", token),
+            Auth::NoAuth => Ok(self),
+            Auth::ApiToken(token) => Ok(self.header("X-Api-Key", token)),
         }
     }
 }

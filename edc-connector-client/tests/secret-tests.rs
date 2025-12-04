@@ -5,13 +5,17 @@ mod create {
         types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_create_a_secret() {
-        let client = setup_provider_client();
+    async fn should_create_a_secret(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
 
         let id = Uuid::new_v4().to_string();
 
@@ -23,9 +27,12 @@ mod create {
         assert!(response.created_at() > 0);
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_failt_to_create_a_secret_when_existing() {
-        let client = setup_provider_client();
+    async fn should_failt_to_create_a_secret_when_existing(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
 
         let id = Uuid::new_v4().to_string();
 
@@ -53,13 +60,17 @@ mod delete {
         types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_delete_an_secret() {
-        let client = setup_provider_client();
+    async fn should_delete_an_secret(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let secret = NewSecret::builder().id(&id).value("bar").build();
@@ -71,9 +82,12 @@ mod delete {
         assert!(response.is_ok());
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_delete_a_secret_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_delete_a_secret_when_not_existing(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let response = client.secrets().delete(&id).await;
@@ -93,13 +107,17 @@ mod get {
         types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_get_a_secret() {
-        let client = setup_provider_client();
+    async fn should_get_a_secret(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let secret = NewSecret::builder().id(&id).value("bar").build();
 
@@ -110,9 +128,12 @@ mod get {
         assert_eq!("bar", secret.value())
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_get_a_secret_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_get_a_secret_when_not_existing(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let response = client.secrets().get(&id).await;
@@ -133,13 +154,17 @@ mod update {
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_update_a_secret() {
-        let client = setup_provider_client();
+    async fn should_update_a_secret(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let secret = NewSecret::builder().id(&id).value("bar").build();
 
@@ -154,9 +179,12 @@ mod update {
         assert_eq!("bar2", secret.value())
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_update_a_secret_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_update_a_secret_when_not_existing(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let updated_secret = Secret::builder().id(&id).value("bar2").build();
