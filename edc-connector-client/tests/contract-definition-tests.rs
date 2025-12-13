@@ -5,13 +5,19 @@ mod create {
         ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{
+        provider_v3, provider_v4, setup_client, setup_provider_client, ClientParams,
+    };
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_create_a_contract_definition() {
-        let client = setup_provider_client();
+    async fn should_create_a_contract_definition(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
 
         let id = Uuid::new_v4().to_string();
 
@@ -73,13 +79,17 @@ mod delete {
         ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_delete_a_contract_definition() {
-        let client = setup_provider_client();
+    async fn should_delete_a_contract_definition(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let contract_definition = NewContractDefinition::builder()
@@ -99,9 +109,14 @@ mod delete {
         assert!(response.is_ok());
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_delete_policy_definition_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_delete_policy_definition_when_not_existing(
+        #[case] provider: ClientParams,
+    ) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let response = client.policies().delete(&id).await;
@@ -122,13 +137,17 @@ mod get {
         ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_get_a_contract_definition() {
-        let client = setup_provider_client();
+    async fn should_get_a_contract_definition(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let contract_definition = NewContractDefinition::builder()
@@ -153,9 +172,14 @@ mod get {
         assert_eq!(definition.contract_policy_id(), "contract_id");
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_get_a_policy_definition_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_get_a_policy_definition_when_not_existing(
+        #[case] provider: ClientParams,
+    ) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let response = client.policies().get(&id).await;
@@ -176,13 +200,17 @@ mod update {
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_update_policy_definition() {
-        let client = setup_provider_client();
+    async fn should_update_policy_definition(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let contract_definition = NewContractDefinition::builder()
             .id(&id)
@@ -213,9 +241,14 @@ mod update {
         assert_eq!("updated_contract_id", definition.contract_policy_id());
     }
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_update_an_contract_definition_when_not_existing() {
-        let client = setup_provider_client();
+    async fn should_fail_to_update_an_contract_definition_when_not_existing(
+        #[case] provider: ClientParams,
+    ) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
 
         let updated_definition = ContractDefinition::builder()
@@ -241,13 +274,17 @@ mod update {
 
 mod query {
     use edc_connector_client::types::{contract_definition::NewContractDefinition, query::Query};
+    use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::setup_provider_client;
+    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
+    #[rstest]
+    #[case(provider_v3())]
+    #[case(provider_v4())]
     #[tokio::test]
-    async fn should_query_contract_definitions() {
-        let client = setup_provider_client();
+    async fn should_query_contract_definitions(#[case] provider: ClientParams) {
+        let client = setup_client(provider);
         let id = Uuid::new_v4().to_string();
         let contract_definition = NewContractDefinition::builder()
             .id(&id)

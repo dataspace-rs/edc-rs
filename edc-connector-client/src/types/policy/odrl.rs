@@ -65,10 +65,7 @@ mod tests {
                     }]
                 }
             ],
-            "permission":[
-            ],
-            "prohibition":[
-        ]});
+        });
 
         let policy = serde_json::from_value::<Policy>(json.clone()).unwrap();
 

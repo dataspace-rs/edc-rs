@@ -3,14 +3,24 @@ mod common;
 mod get {
 
     use edc_connector_client::types::transfer_process::TransferProcessState;
+    use rstest::rstest;
 
+    use crate::common::{
+        consumer_v3, consumer_v4, provider_v3, provider_v4, setup_client, wait_for_transfer_state,
+        ClientParams,
+    };
     use crate::common::{seed_transfer_process, wait_for};
-    use crate::common::{setup_consumer_client, setup_provider_client, wait_for_transfer_state};
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_receive_an_edr_in_cache() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_receive_an_edr_in_cache(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (transfer_process_id, agreement_id, _, asset_id) =
             seed_transfer_process(&consumer, &provider).await;
@@ -35,14 +45,24 @@ mod query {
 
     use edc_connector_client::types::query::Query;
     use edc_connector_client::types::transfer_process::TransferProcessState;
+    use rstest::rstest;
 
+    use crate::common::{
+        consumer_v3, consumer_v4, provider_v3, provider_v4, setup_client, wait_for_transfer_state,
+        ClientParams,
+    };
     use crate::common::{seed_transfer_process, wait_for};
-    use crate::common::{setup_consumer_client, setup_provider_client, wait_for_transfer_state};
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_query_the_edr_cache() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_query_the_edr_cache(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (transfer_process_id, _, _, asset_id) =
             seed_transfer_process(&consumer, &provider).await;
@@ -53,6 +73,10 @@ mod query {
             TransferProcessState::Started,
         )
         .await;
+
+        let _ = wait_for(|| async { consumer.edrs().get_entry(&transfer_process_id).await })
+            .await
+            .unwrap();
 
         let edrs = wait_for(|| async {
             consumer
@@ -72,14 +96,24 @@ mod delete {
     use edc_connector_client::types::transfer_process::TransferProcessState;
     use edc_connector_client::{Error, ManagementApiError, ManagementApiErrorDetailKind};
     use reqwest::StatusCode;
+    use rstest::rstest;
 
+    use crate::common::{
+        consumer_v3, consumer_v4, provider_v3, provider_v4, setup_client, wait_for_transfer_state,
+        ClientParams,
+    };
     use crate::common::{seed_transfer_process, wait_for};
-    use crate::common::{setup_consumer_client, setup_provider_client, wait_for_transfer_state};
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_delete_a_cached_edr() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_delete_a_cached_edr(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (transfer_process_id, _, _, _) = seed_transfer_process(&consumer, &provider).await;
 

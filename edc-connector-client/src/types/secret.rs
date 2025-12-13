@@ -9,6 +9,9 @@ pub struct NewSecret {
     id: Option<String>,
     #[builder(into)]
     value: String,
+    #[builder(default = "Secret".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Builder)]
@@ -19,6 +22,9 @@ pub struct Secret {
     id: String,
     #[builder(into)]
     value: String,
+    #[builder(default = "Secret".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
 }
 
 impl Secret {

@@ -5,25 +5,34 @@ mod initiate {
         types::{
             catalog::DatasetRequest,
             contract_negotiation::ContractRequest,
-            policy::{Policy, PolicyKind, Target},
+            policy::{Action, Permission, Policy, PolicyKind, Target},
         },
         Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
+    use rstest::rstest;
 
     use crate::common::{
-        seed, setup_consumer_client, setup_provider_client, PROVIDER_ID, PROVIDER_PROTOCOL,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed, setup_client, ClientParams,
+        PROVIDER_ID, PROVIDER_PROTOCOL,
     };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_initiate_a_contract_negotiation() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_initiate_a_contract_negotiation(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (asset_id, _, _) = seed(&provider).await;
 
         let dataset_request = DatasetRequest::builder()
             .counter_party_address(PROVIDER_PROTOCOL)
+            .counter_party_id(PROVIDER_ID)
             .id(&asset_id)
             .build();
 
@@ -43,7 +52,8 @@ mod initiate {
                     .kind(PolicyKind::Offer)
                     .id(offer_id)
                     .assigner(PROVIDER_ID)
-                    .target(Target::id(&asset_id))
+                    .target(Target::simple(&asset_id))
+                    .permission(Permission::builder().action(Action::simple("use")).build())
                     .build(),
             )
             .build();
@@ -57,15 +67,22 @@ mod initiate {
         assert!(response.created_at() > 0);
     }
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_fail_to_initiate_a_contact_negotiation_with_wrong_policy() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_fail_to_initiate_a_contact_negotiation_with_wrong_policy(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (asset_id, _, _) = seed(&provider).await;
 
         let dataset_request = DatasetRequest::builder()
             .counter_party_address(PROVIDER_PROTOCOL)
+            .counter_party_id(PROVIDER_ID)
             .id(&asset_id)
             .build();
 
@@ -106,13 +123,23 @@ mod get {
     use edc_connector_client::types::contract_negotiation::{
         ContractNegotiationKind, ContractNegotiationState,
     };
+    use rstest::rstest;
 
-    use crate::common::{seed_contract_negotiation, setup_consumer_client, setup_provider_client};
+    use crate::common::{
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_negotiation,
+        setup_client, ClientParams,
+    };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_get_a_contract_negotiation() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_get_a_contract_negotiation(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (contract_negotiation_id, _) = seed_contract_negotiation(&consumer, &provider).await;
 
@@ -129,10 +156,16 @@ mod get {
         assert_eq!(&ContractNegotiationKind::Consumer, cn.kind());
     }
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_get_a_state_of_contract_negotiation() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_get_a_state_of_contract_negotiation(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (contract_negotiation_id, _) = seed_contract_negotiation(&consumer, &provider).await;
 
@@ -147,13 +180,23 @@ mod get {
 
 mod query {
     use edc_connector_client::types::query::Query;
+    use rstest::rstest;
 
-    use crate::common::{seed_contract_negotiation, setup_consumer_client, setup_provider_client};
+    use crate::common::{
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_negotiation,
+        setup_client, ClientParams,
+    };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_query_contract_negotiations() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_query_contract_negotiations(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (contract_negotiation_id, _) = seed_contract_negotiation(&consumer, &provider).await;
 
@@ -175,16 +218,23 @@ mod terminate {
     use edc_connector_client::{
         types::contract_negotiation::ContractNegotiationState, Error, ManagementApiError,
     };
+    use rstest::rstest;
 
     use crate::common::{
-        seed_contract_negotiation, setup_consumer_client, setup_provider_client,
-        wait_for_negotiation_state,
+        consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_negotiation,
+        setup_client, wait_for_negotiation_state, ClientParams,
     };
 
+    #[rstest]
+    #[case(consumer_v3(), provider_v3())]
+    #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
-    async fn should_terminate_a_contract_negotiations() {
-        let provider = setup_provider_client();
-        let consumer = setup_consumer_client();
+    async fn should_terminate_a_contract_negotiations(
+        #[case] consumer: ClientParams,
+        #[case] provider: ClientParams,
+    ) {
+        let provider = setup_client(provider);
+        let consumer = setup_client(consumer);
 
         let (contract_negotiation_id, _) = seed_contract_negotiation(&consumer, &provider).await;
 

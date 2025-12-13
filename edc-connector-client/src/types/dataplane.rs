@@ -12,6 +12,7 @@ pub struct DataPlaneInstance {
     url: String,
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     allowed_source_types: Vec<String>,
+    #[serde(default)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     allowed_dest_types: Vec<String>,
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]

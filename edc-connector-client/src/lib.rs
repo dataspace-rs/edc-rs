@@ -31,12 +31,13 @@
 //!
 
 pub mod api;
+mod auth;
 mod client;
 mod error;
 
 pub mod types;
-
-pub use client::{Auth, EdcConnectorClient};
+pub use auth::Auth;
+pub use client::{EdcConnectorApiVersion, EdcConnectorClient};
 pub use error::{
     BuilderError, ConversionError, Error, ManagementApiError, ManagementApiErrorDetail,
     ManagementApiErrorDetailKind,

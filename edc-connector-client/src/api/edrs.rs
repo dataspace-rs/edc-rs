@@ -3,9 +3,7 @@ use reqwest::StatusCode;
 use crate::{
     client::EdcConnectorClientInternal,
     types::{
-        context::{WithContext, WithContextRef},
-        data_address::DataAddress,
-        edr::EndpointDataReferenceEntry,
+        context::WithContext, data_address::DataAddress, edr::EndpointDataReferenceEntry,
         query::Query,
     },
     EdcResult,
@@ -37,7 +35,7 @@ impl<'a> EdrApi<'a> {
     }
 
     pub async fn get_data_address(&self, id: &str) -> EdcResult<DataAddress> {
-        let url = self.get_endpoint(&[id, "dataaddress"]);
+        let url = self.0.path_for(&["edrs", id, "dataaddress"]);
         self.0
             .get::<WithContext<DataAddress>>(url)
             .await
@@ -45,26 +43,18 @@ impl<'a> EdrApi<'a> {
     }
 
     pub async fn query(&self, query: Query) -> EdcResult<Vec<EndpointDataReferenceEntry>> {
-        let url = self.get_endpoint(&["request"]);
+        let url = self.0.path_for(&["edrs", "request"]);
         self.0
             .post::<_, Vec<WithContext<EndpointDataReferenceEntry>>>(
                 url,
-                &WithContextRef::default_context(&query),
+                &self.0.context_for(&query),
             )
             .await
             .map(|results| results.into_iter().map(|ctx| ctx.inner).collect())
     }
 
     pub async fn delete(&self, id: &str) -> EdcResult<()> {
-        let url = self.get_endpoint(&[id]);
+        let url = self.0.path_for(&["edrs", id]);
         self.0.del(url).await
-    }
-
-    fn get_endpoint(&self, paths: &[&str]) -> String {
-        [self.0.management_url.as_str(), "v3", "edrs"]
-            .into_iter()
-            .chain(paths.iter().copied())
-            .collect::<Vec<_>>()
-            .join("/")
     }
 }

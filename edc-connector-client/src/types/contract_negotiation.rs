@@ -23,6 +23,9 @@ pub struct ContractRequest {
     #[builder(into)]
     counter_party_address: String,
     policy: Policy,
+    #[builder(default = "ContractRequest".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
 }
 
 impl<S: contract_request_builder::State> ContractRequestBuilder<S> {

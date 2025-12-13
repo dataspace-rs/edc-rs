@@ -5,7 +5,12 @@ use crate::{error::BuilderError, ConversionError};
 use super::properties::{FromValue, Properties, ToValue};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct DataAddress(Properties);
+pub struct DataAddress {
+    #[serde(rename = "@type")]
+    ty: String,
+    #[serde(flatten)]
+    properties: Properties,
+}
 
 impl DataAddress {
     pub fn builder() -> DataAddressBuilder {
@@ -16,7 +21,7 @@ impl DataAddress {
     where
         T: FromValue,
     {
-        self.0.get(property)
+        self.properties.get(property)
     }
 }
 
@@ -40,7 +45,10 @@ impl DataAddressBuilder {
 
     pub fn build(self) -> Result<DataAddress, BuilderError> {
         if self.0.contains("type") {
-            Ok(DataAddress(self.0))
+            Ok(DataAddress {
+                ty: "DataAddress".to_string(),
+                properties: self.0,
+            })
         } else {
             Err(BuilderError::missing_property("type"))
         }

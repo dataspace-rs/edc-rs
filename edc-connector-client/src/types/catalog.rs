@@ -41,12 +41,16 @@ impl Dataset {
 #[derive(Serialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogRequest {
+    #[builder(default = "CatalogRequest".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
     #[builder(into)]
     counter_party_address: String,
     #[builder(into)]
     #[builder(default)]
     protocol: Protocol,
     #[builder(into)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     counter_party_id: Option<String>,
     query_spec: Query,
 }
@@ -54,6 +58,9 @@ pub struct CatalogRequest {
 #[derive(Serialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct DatasetRequest {
+    #[builder(default = "DatasetRequest".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
     #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
@@ -62,4 +69,7 @@ pub struct DatasetRequest {
     #[builder(into)]
     #[builder(default)]
     protocol: Protocol,
+    #[builder(into)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    counter_party_id: Option<String>,
 }

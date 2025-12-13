@@ -15,6 +15,9 @@ pub struct CallbackAddress {
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     #[builder(into)]
     events: Vec<String>,
+    #[builder(default = "CallbackAddress".to_string())]
+    #[serde(rename = "@type")]
+    ty: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
