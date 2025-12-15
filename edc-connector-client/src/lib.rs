@@ -36,7 +36,7 @@ mod client;
 mod error;
 
 pub mod types;
-pub use auth::Auth;
+pub use auth::{Auth, OAuth2Config};
 pub use client::{EdcConnectorApiVersion, EdcConnectorClient};
 pub use error::{
     BuilderError, ConversionError, Error, ManagementApiError, ManagementApiErrorDetail,

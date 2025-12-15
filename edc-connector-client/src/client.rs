@@ -38,6 +38,7 @@ pub(crate) struct EdcConnectorClientInternal {
     pub(crate) management_url: String,
     pub(crate) auth: Auth,
     pub(crate) version: EdcConnectorApiVersion,
+    pub(crate) infer_path: bool,
 }
 
 impl EdcConnectorClientInternal {
@@ -46,12 +47,14 @@ impl EdcConnectorClientInternal {
         management_url: String,
         auth: Auth,
         version: EdcConnectorApiVersion,
+        infer_path: bool,
     ) -> Self {
         Self {
             client,
             management_url,
             auth,
             version,
+            infer_path,
         }
     }
 
@@ -155,9 +158,14 @@ impl EdcConnectorClientInternal {
     }
 
     pub(crate) fn path_for(&self, paths: &[&str]) -> String {
-        [self.management_url.as_str(), self.version.as_str()]
-            .into_iter()
-            .chain(paths.iter().copied())
+        let base: &[&str] = if self.infer_path {
+            &[self.management_url.as_str(), self.version.as_str()]
+        } else {
+            &[self.management_url.as_str()]
+        };
+        base.into_iter()
+            .chain(paths.iter())
+            .map(|s| *s)
             .collect::<Vec<_>>()
             .join("/")
     }
@@ -198,12 +206,14 @@ impl EdcConnectorClient {
         management_url: String,
         auth: Auth,
         version: EdcConnectorApiVersion,
+        infer_path: bool,
     ) -> Self {
         Self(Arc::new(EdcConnectorClientInternal::new(
             client,
             management_url,
             auth,
             version,
+            infer_path,
         )))
     }
 
@@ -260,6 +270,7 @@ pub struct EdcClientConnectorBuilder {
     management_url: Option<String>,
     auth: Auth,
     version: EdcConnectorApiVersion,
+    infer_path: bool,
 }
 
 impl EdcClientConnectorBuilder {
@@ -278,6 +289,11 @@ impl EdcClientConnectorBuilder {
         self
     }
 
+    pub fn infer_path(mut self, infer_path: bool) -> Self {
+        self.infer_path = infer_path;
+        self
+    }
+
     pub fn build(self) -> Result<EdcConnectorClient, BuilderError> {
         let url = self
             .management_url
@@ -289,6 +305,7 @@ impl EdcClientConnectorBuilder {
             url,
             self.auth,
             self.version,
+            self.infer_path,
         ))
     }
 }
@@ -299,19 +316,25 @@ impl Default for EdcClientConnectorBuilder {
             management_url: Default::default(),
             auth: Auth::NoAuth,
             version: EdcConnectorApiVersion::V3,
+            infer_path: true,
         }
     }
 }
 
+#[async_trait::async_trait]
 trait BuilderExt: Sized {
     async fn authenticated(self, auth: &Auth) -> EdcResult<Self>;
 }
 
+#[async_trait::async_trait]
 impl BuilderExt for RequestBuilder {
     async fn authenticated(self, auth: &Auth) -> EdcResult<Self> {
         match auth {
             Auth::NoAuth => Ok(self),
             Auth::ApiToken(token) => Ok(self.header("X-Api-Key", token)),
+            Auth::OAuth2(client) => {
+                Ok(self.header("Authorization", format!("Bearer {}", client.token().await?)))
+            }
         }
     }
 }

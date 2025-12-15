@@ -8,6 +8,9 @@ pub enum Error {
 
     #[error(transparent)]
     ManagementApi(ManagementApiError),
+
+    #[error(transparent)]
+    Auth(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Debug, thiserror::Error)]
