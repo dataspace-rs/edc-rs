@@ -112,9 +112,7 @@ impl OAuth2Internal {
         let mut session = self.session.lock().await;
 
         match session.as_ref() {
-            Some(t) if !t.is_expired() => {
-                Ok(t.access_token().secret().to_string())
-            }
+            Some(t) if !t.is_expired() => Ok(t.access_token().secret().to_string()),
             Some(t) => {
                 let new_session = self.refresh_session(t).await?;
                 let access_token = new_session.access_token().secret().to_string();

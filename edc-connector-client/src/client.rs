@@ -164,7 +164,8 @@ impl EdcConnectorClientInternal {
             &[self.management_url.as_str()]
         };
         base.iter()
-            .chain(paths.iter()).copied()
+            .chain(paths.iter())
+            .copied()
             .collect::<Vec<_>>()
             .join("/")
     }
