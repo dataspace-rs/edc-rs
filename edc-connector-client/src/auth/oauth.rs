@@ -113,7 +113,7 @@ impl OAuth2Internal {
 
         match session.as_ref() {
             Some(t) if !t.is_expired() => {
-                return Ok(t.access_token().secret().to_string());
+                Ok(t.access_token().secret().to_string())
             }
             Some(t) => {
                 let new_session = self.refresh_session(t).await?;
