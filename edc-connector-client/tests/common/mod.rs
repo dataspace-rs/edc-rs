@@ -191,7 +191,9 @@ pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
                         .await
                         .unwrap();
                 });
-        }).join().unwrap();
+        })
+        .join()
+        .unwrap();
     }
 
     EdcConnectorClient::builder()

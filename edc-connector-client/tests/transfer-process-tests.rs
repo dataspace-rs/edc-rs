@@ -286,9 +286,8 @@ mod transfer_processes {
         use rstest::rstest;
 
         use crate::common::{
-            consumer_v3, consumer_v4, provider_v3, provider_v4,
-             seed_contract_agreement, setup_client, wait_for_transfer_state,
-            ClientParams,
+            consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_agreement,
+            setup_client, wait_for_transfer_state, ClientParams,
         };
 
         #[rstest]
