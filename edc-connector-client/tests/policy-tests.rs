@@ -8,11 +8,14 @@ mod create {
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
+    use crate::common::{
+        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
+    };
 
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_create_a_policy_definition(#[case] provider: ClientParams) {
         let client = setup_client(provider);
@@ -33,6 +36,7 @@ mod create {
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_failt_to_create_an_policy_definition_when_existing(
         #[case] provider: ClientParams,
@@ -71,11 +75,14 @@ mod delete {
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
+    use crate::common::{
+        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
+    };
 
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_delete_a_policy_definition(#[case] provider: ClientParams) {
         let client = setup_client(provider);
@@ -95,6 +102,7 @@ mod delete {
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_fail_to_delete_policy_definition_when_not_existing(
         #[case] provider: ClientParams,
@@ -126,11 +134,14 @@ mod get {
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
+    use crate::common::{
+        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
+    };
 
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_get_a_policy_definition(#[case] provider: ClientParams) {
         let client = setup_client(provider);
@@ -196,6 +207,7 @@ mod get {
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_fail_to_get_a_policy_definition_when_not_existing(
         #[case] provider: ClientParams,
@@ -224,11 +236,14 @@ mod update {
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
+    use crate::common::{
+        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
+    };
 
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_update_policy_definition(#[case] provider: ClientParams) {
         let client = setup_client(provider);
@@ -259,6 +274,7 @@ mod update {
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_fail_to_update_an_policy_definition_when_not_existing(
         #[case] provider: ClientParams,
@@ -295,11 +311,14 @@ mod query {
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
+    use crate::common::{
+        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
+    };
 
     #[rstest]
     #[case(provider_v3())]
     #[case(provider_v4())]
+    #[case(provider_virtual_edc())]
     #[tokio::test]
     async fn should_query_policy_definitions(#[case] provider: ClientParams) {
         let client = setup_client(provider);

@@ -16,14 +16,14 @@ mod get {
     #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
     async fn should_receive_an_edr_in_cache(
-        #[case] consumer: ClientParams,
-        #[case] provider: ClientParams,
+        #[case] consumer_cfg: ClientParams,
+        #[case] provider_cfg: ClientParams,
     ) {
-        let provider = setup_client(provider);
-        let consumer = setup_client(consumer);
+        let provider = setup_client(provider_cfg.clone());
+        let consumer = setup_client(consumer_cfg.clone());
 
         let (transfer_process_id, agreement_id, _, asset_id) =
-            seed_transfer_process(&consumer, &provider).await;
+            seed_transfer_process(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
 
         wait_for_transfer_state(
             &consumer,
@@ -58,14 +58,14 @@ mod query {
     #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
     async fn should_query_the_edr_cache(
-        #[case] consumer: ClientParams,
-        #[case] provider: ClientParams,
+        #[case] consumer_cfg: ClientParams,
+        #[case] provider_cfg: ClientParams,
     ) {
-        let provider = setup_client(provider);
-        let consumer = setup_client(consumer);
+        let provider = setup_client(provider_cfg.clone());
+        let consumer = setup_client(consumer_cfg.clone());
 
         let (transfer_process_id, _, _, asset_id) =
-            seed_transfer_process(&consumer, &provider).await;
+            seed_transfer_process(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
 
         wait_for_transfer_state(
             &consumer,
@@ -109,13 +109,14 @@ mod delete {
     #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
     async fn should_delete_a_cached_edr(
-        #[case] consumer: ClientParams,
-        #[case] provider: ClientParams,
+        #[case] consumer_cfg: ClientParams,
+        #[case] provider_cfg: ClientParams,
     ) {
-        let provider = setup_client(provider);
-        let consumer = setup_client(consumer);
+        let provider = setup_client(provider_cfg.clone());
+        let consumer = setup_client(consumer_cfg.clone());
 
-        let (transfer_process_id, _, _, _) = seed_transfer_process(&consumer, &provider).await;
+        let (transfer_process_id, _, _, _) =
+            seed_transfer_process(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
 
         wait_for_transfer_state(
             &consumer,

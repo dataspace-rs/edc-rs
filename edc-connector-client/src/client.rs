@@ -6,7 +6,8 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::{
     api::{
         AssetApi, CatalogApi, ContractAgreementApi, ContractDefinitionApi, ContractNegotiationApi,
-        DataPlaneApi, EdrApi, PolicyApi, SecretsApi, TransferProcessApi,
+        DataPlaneApi, EdrApi, ParticipantContextApi, ParticipantContextConfigApi, PolicyApi,
+        SecretsApi, TransferProcessApi,
     },
     error::{
         BuilderError, ManagementApiError, ManagementApiErrorDetail, ManagementApiErrorDetailKind,
@@ -24,6 +25,12 @@ pub enum EdcConnectorApiVersion {
     V4,
 }
 
+#[allow(unused)]
+pub enum ApiTarget {
+    Participant,
+    Admin,
+}
+
 impl EdcConnectorApiVersion {
     pub fn as_str(&self) -> &str {
         match self {
@@ -38,7 +45,7 @@ pub(crate) struct EdcConnectorClientInternal {
     pub(crate) management_url: String,
     pub(crate) auth: Auth,
     pub(crate) version: EdcConnectorApiVersion,
-    pub(crate) infer_path: bool,
+    pub(crate) participant_context: Option<String>,
 }
 
 impl EdcConnectorClientInternal {
@@ -47,14 +54,14 @@ impl EdcConnectorClientInternal {
         management_url: String,
         auth: Auth,
         version: EdcConnectorApiVersion,
-        infer_path: bool,
+        participant_context: Option<String>,
     ) -> Self {
         Self {
             client,
             management_url,
             auth,
             version,
-            infer_path,
+            participant_context,
         }
     }
 
@@ -103,12 +110,43 @@ impl EdcConnectorClientInternal {
         self.internal_post(path, body, as_json).await
     }
 
+    pub(crate) async fn put_no_response<I: Serialize>(
+        &self,
+        path: impl AsRef<str>,
+        body: &I,
+    ) -> EdcResult<()> {
+        self.internal_put(path, body, empty).await
+    }
+
     pub(crate) async fn post_no_response<I: Serialize>(
         &self,
         path: impl AsRef<str>,
         body: &I,
     ) -> EdcResult<()> {
         self.internal_post(path, body, empty).await
+    }
+
+    async fn internal_put<I, F, Fut, R>(
+        &self,
+        path: impl AsRef<str>,
+        body: &I,
+        handler: F,
+    ) -> EdcResult<R>
+    where
+        I: Serialize,
+        F: Fn(Response) -> Fut,
+        Fut: Future<Output = EdcResult<R>>,
+    {
+        let response = self
+            .client
+            .put(path.as_ref())
+            .json(body)
+            .authenticated(&self.auth)
+            .await?
+            .send()
+            .await?;
+
+        self.handle_response(response, handler).await
     }
 
     async fn internal_post<I, F, Fut, R>(
@@ -158,10 +196,22 @@ impl EdcConnectorClientInternal {
     }
 
     pub(crate) fn path_for(&self, paths: &[&str]) -> String {
-        let base: &[&str] = if self.infer_path {
-            &[self.management_url.as_str(), self.version.as_str()]
+        self.path_for_target(ApiTarget::Participant, paths)
+    }
+
+    pub(crate) fn path_for_target(&self, target: ApiTarget, paths: &[&str]) -> String {
+        let base: &[&str] = if let Some(pc) = &self.participant_context {
+            match target {
+                ApiTarget::Participant => &[
+                    self.management_url.as_str(),
+                    "v4alpha",
+                    "participants",
+                    pc.as_str(),
+                ],
+                ApiTarget::Admin => &[self.management_url.as_str(), "v4alpha"],
+            }
         } else {
-            &[self.management_url.as_str()]
+            &[self.management_url.as_str(), self.version.as_str()]
         };
         base.iter()
             .chain(paths.iter())
@@ -206,14 +256,14 @@ impl EdcConnectorClient {
         management_url: String,
         auth: Auth,
         version: EdcConnectorApiVersion,
-        infer_path: bool,
+        participant_context: Option<String>,
     ) -> Self {
         Self(Arc::new(EdcConnectorClientInternal::new(
             client,
             management_url,
             auth,
             version,
-            infer_path,
+            participant_context,
         )))
     }
 
@@ -261,6 +311,14 @@ impl EdcConnectorClient {
         SecretsApi::new(&self.0)
     }
 
+    pub fn participants(&self) -> ParticipantContextApi<'_> {
+        ParticipantContextApi::new(&self.0)
+    }
+
+    pub fn participant_configs(&self) -> ParticipantContextConfigApi<'_> {
+        ParticipantContextConfigApi::new(&self.0)
+    }
+
     pub fn api_version(&self) -> EdcConnectorApiVersion {
         self.0.version.clone()
     }
@@ -270,7 +328,7 @@ pub struct EdcClientConnectorBuilder {
     management_url: Option<String>,
     auth: Auth,
     version: EdcConnectorApiVersion,
-    infer_path: bool,
+    participant_context: Option<String>,
 }
 
 impl EdcClientConnectorBuilder {
@@ -289,8 +347,16 @@ impl EdcClientConnectorBuilder {
         self
     }
 
-    pub fn infer_path(mut self, infer_path: bool) -> Self {
-        self.infer_path = infer_path;
+    pub fn participant_context(mut self, participant_context: impl Into<String>) -> Self {
+        self.participant_context = Some(participant_context.into());
+        self
+    }
+
+    pub fn maybe_participant_context(
+        mut self,
+        participant_context: Option<impl Into<String>>,
+    ) -> Self {
+        self.participant_context = participant_context.map(|s| s.into());
         self
     }
 
@@ -305,7 +371,7 @@ impl EdcClientConnectorBuilder {
             url,
             self.auth,
             self.version,
-            self.infer_path,
+            self.participant_context,
         ))
     }
 }
@@ -316,7 +382,7 @@ impl Default for EdcClientConnectorBuilder {
             management_url: Default::default(),
             auth: Auth::NoAuth,
             version: EdcConnectorApiVersion::V3,
-            infer_path: true,
+            participant_context: None,
         }
     }
 }

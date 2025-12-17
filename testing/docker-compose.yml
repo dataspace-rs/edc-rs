@@ -37,3 +37,28 @@ services:
       - ./conf/provider-connector.config:/config
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  virtual-connector:
+    image: ${VIRTUAL_CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/virtual-connector:latest}
+    ports:
+      - "39193:8081" # connector management
+      - "1046:1044" # data-plane public
+    environment:
+      EDC_IAM_OAUTH2_ISSUER: "http://localhost:8080/realms/edcv"
+      EDC_IAM_OAUTH2_JWKS_URL: "http://keycloak:8080/realms/edcv/protocol/openid-connect/certs"
+      EDC_POLICY_VALIDATION_ENABLED: "false"
+      EDC_DSP_CALLBACK_ADDRESS: "http://virtual-connector:8282/api/protocol"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.2
+    container_name: keycloak
+    command: start-dev --import-realm
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"

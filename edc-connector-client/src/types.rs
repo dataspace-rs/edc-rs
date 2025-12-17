@@ -12,6 +12,7 @@ pub mod contract_negotiation;
 pub mod data_address;
 pub mod dataplane;
 pub mod edr;
+pub mod participants;
 pub mod policy;
 pub mod properties;
 pub mod query;
@@ -19,7 +20,7 @@ pub mod response;
 pub mod secret;
 pub mod transfer_process;
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Protocol(String);
 
 impl Protocol {
