@@ -91,8 +91,8 @@ impl OAuth2 {
     pub fn init(cfg: OAuth2Config) -> EdcResult<OAuth2> {
         let client = BasicClient::new(ClientId::new(cfg.client_id))
             .set_client_secret(ClientSecret::new(cfg.client_secret))
-            .set_auth_uri(AuthUrl::new("http://authorize".to_string()).unwrap())
-            .set_token_uri(TokenUrl::new(cfg.token_url).unwrap());
+            .set_auth_uri(AuthUrl::new("http://authorize".to_string()).map_err(|e| Error::Auth(Box::new(e)))?)
+            .set_token_uri(TokenUrl::new(cfg.token_url).map_err(|e| Error::Auth(Box::new(e)))?);
 
         Ok(OAuth2(Arc::new(OAuth2Internal {
             oauth_client: client,
