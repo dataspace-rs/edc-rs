@@ -35,6 +35,7 @@ pub struct NewAsset {
     private_properties: Properties,
     #[builder(into)]
     #[serde(rename = "@id")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     id: Option<String>,
     #[builder(default = "Asset".to_string())]
     #[serde(rename = "@type")]

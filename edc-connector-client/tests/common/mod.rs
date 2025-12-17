@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{future::Future, time::Duration};
+use std::{collections::HashMap, future::Future, thread, time::Duration};
 
 use bon::Builder;
 use edc_connector_client::{
@@ -10,11 +10,13 @@ use edc_connector_client::{
         contract_definition::NewContractDefinition,
         contract_negotiation::{ContractNegotiationState, ContractRequest},
         data_address::DataAddress,
+        participants::{NewParticipantContext, ParticipantContextConfig},
         policy::{Action, NewPolicyDefinition, Permission, Policy, PolicyKind, Target},
         query::Criterion,
         transfer_process::{TransferProcessState, TransferRequest},
+        Protocol,
     },
-    Auth, EdcConnectorApiVersion, EdcConnectorClient, EDC_NAMESPACE,
+    Auth, EdcConnectorApiVersion, EdcConnectorClient, OAuth2Config, EDC_NAMESPACE,
 };
 use tokio::time::sleep;
 use uuid::Uuid;
@@ -22,17 +24,32 @@ use uuid::Uuid;
 pub const PROVIDER_PROTOCOL: &str = "http://provider-connector:9194/protocol";
 pub const PROVIDER_ID: &str = "provider";
 
-#[derive(Builder)]
+pub const CONSUMER_PROTOCOL: &str = "http://provider-connector:9194/protocol";
+pub const CONSUMER_ID: &str = "consumer";
+
+#[derive(Builder, Clone)]
 pub struct ClientParams {
     pub management_url: String,
     #[builder(default = EdcConnectorApiVersion::V3)]
     pub version: EdcConnectorApiVersion,
+    #[builder(into)]
+    pub participant_context: Option<String>,
+    pub auth: Auth,
+    #[builder(into)]
+    pub protocol_address: String,
+    #[builder(into)]
+    pub protocol_id: String,
+    #[builder(default)]
+    pub protocol: Protocol,
 }
 
 pub fn provider_v3() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:29193/management".to_string())
         .version(EdcConnectorApiVersion::V3)
+        .auth(Auth::ApiToken("123456".to_string()))
+        .protocol_address(PROVIDER_PROTOCOL)
+        .protocol_id(PROVIDER_ID)
         .build()
 }
 
@@ -40,6 +57,9 @@ pub fn consumer_v3() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:19193/management".to_string())
         .version(EdcConnectorApiVersion::V3)
+        .auth(Auth::ApiToken("123456".to_string()))
+        .protocol_address(CONSUMER_PROTOCOL)
+        .protocol_id(CONSUMER_ID)
         .build()
 }
 
@@ -47,6 +67,19 @@ pub fn provider_v4() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:29193/management".to_string())
         .version(EdcConnectorApiVersion::V4)
+        .auth(Auth::ApiToken("123456".to_string()))
+        .protocol_address(PROVIDER_PROTOCOL)
+        .protocol_id(PROVIDER_ID)
+        .build()
+}
+
+pub fn provider_v4_2025() -> ClientParams {
+    ClientParams::builder()
+        .management_url("http://localhost:29193/management".to_string())
+        .version(EdcConnectorApiVersion::V4)
+        .auth(Auth::ApiToken("123456".to_string()))
+        .protocol_address("http://provider-connector:9194/protocol/2025-1")
+        .protocol_id(PROVIDER_ID)
         .build()
 }
 
@@ -54,11 +87,52 @@ pub fn consumer_v4() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:19193/management".to_string())
         .version(EdcConnectorApiVersion::V4)
+        .auth(Auth::ApiToken("123456".to_string()))
+        .protocol_address(CONSUMER_PROTOCOL)
+        .protocol_id(CONSUMER_ID)
         .build()
 }
 
-pub fn setup_provider_client() -> EdcConnectorClient {
-    setup_provider_client_with_auth(Auth::ApiToken("123456".to_string()))
+pub fn consumer_virtual_edc() -> ClientParams {
+    ClientParams::builder()
+        .management_url("http://localhost:39193/api/mgmt".to_string())
+        .version(EdcConnectorApiVersion::V4)
+        .participant_context("consumer")
+        .auth(
+            Auth::oauth(
+                OAuth2Config::builder()
+                    .client_id("consumer")
+                    .client_secret("consumer-secret")
+                    .token_url("http://localhost:8080/realms/edcv/protocol/openid-connect/token")
+                    .build(),
+            )
+            .unwrap(),
+        )
+        .protocol_address("http://virtual-connector:8282/api/protocol/consumer/2025-1")
+        .protocol_id(CONSUMER_ID)
+        .protocol(Protocol::new("dataspace-protocol-http:2025-1"))
+        .build()
+}
+
+pub fn provider_virtual_edc() -> ClientParams {
+    ClientParams::builder()
+        .management_url("http://localhost:39193/api/mgmt".to_string())
+        .version(EdcConnectorApiVersion::V4)
+        .participant_context("provider")
+        .auth(
+            Auth::oauth(
+                OAuth2Config::builder()
+                    .client_id("provider")
+                    .client_secret("provider-secret")
+                    .token_url("http://localhost:8080/realms/edcv/protocol/openid-connect/token")
+                    .build(),
+            )
+            .unwrap(),
+        )
+        .protocol_address("http://virtual-connector:8282/api/protocol/provider/2025-1")
+        .protocol_id(PROVIDER_ID)
+        .protocol(Protocol::new("dataspace-protocol-http:2025-1"))
+        .build()
 }
 
 pub fn setup_provider_client_with_auth(auth: Auth) -> EdcConnectorClient {
@@ -69,27 +143,63 @@ pub fn setup_provider_client_with_auth(auth: Auth) -> EdcConnectorClient {
         .unwrap()
 }
 
-pub fn setup_consumer_client() -> EdcConnectorClient {
-    EdcConnectorClient::builder()
-        .management_url("http://localhost:19193/management")
-        .with_auth(Auth::api_token("123456"))
-        .build()
-        .unwrap()
-}
-
 pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
+    if let Some(participant_context) = params.participant_context.clone() {
+        let auth = OAuth2Config::builder()
+            .client_id("provisioner")
+            .client_secret("provisioner-secret")
+            .token_url("http://localhost:8080/realms/edcv/protocol/openid-connect/token")
+            .build();
+
+        let client = EdcConnectorClient::builder()
+            .management_url(&params.management_url)
+            .with_auth(Auth::oauth(auth).unwrap())
+            .version(EdcConnectorApiVersion::V4)
+            .participant_context(participant_context.clone())
+            .build()
+            .unwrap();
+
+        thread::spawn(move || {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(async {
+                    let _ = client
+                        .participants()
+                        .create(
+                            &NewParticipantContext::builder()
+                                .id(&participant_context)
+                                .identity(&participant_context)
+                                .build(),
+                        )
+                        .await;
+
+                    let mut entries = HashMap::new();
+
+                    entries.insert(
+                        "edc.participant.id".to_string(),
+                        participant_context.clone(),
+                    );
+
+                    let _ = client
+                        .participant_configs()
+                        .save(
+                            &participant_context,
+                            &ParticipantContextConfig::builder().entries(entries).build(),
+                        )
+                        .await
+                        .unwrap();
+                });
+        });
+    }
+
     EdcConnectorClient::builder()
         .management_url(&params.management_url)
         .with_auth(Auth::api_token("123456"))
         .version(params.version)
-        .build()
-        .unwrap()
-}
-
-pub fn setup_consumer_client_v4() -> EdcConnectorClient {
-    EdcConnectorClient::builder()
-        .management_url("http://localhost:19193/management")
-        .with_auth(Auth::api_token("123456"))
+        .with_auth(params.auth)
+        .maybe_participant_context(params.participant_context)
         .build()
         .unwrap()
 }
@@ -145,13 +255,16 @@ pub async fn seed(client: &EdcConnectorClient) -> (String, String, String) {
 
 pub async fn seed_contract_negotiation(
     consumer: &EdcConnectorClient,
+    consumer_cfg: &ClientParams,
     provider: &EdcConnectorClient,
+    provider_cfg: &ClientParams,
 ) -> (String, String) {
     let (asset_id, _, _) = seed(provider).await;
 
     let dataset_request = DatasetRequest::builder()
-        .counter_party_address(PROVIDER_PROTOCOL)
-        .counter_party_id(PROVIDER_ID)
+        .counter_party_address(&provider_cfg.protocol_address)
+        .counter_party_id(&provider_cfg.protocol_id)
+        .protocol(consumer_cfg.protocol.clone())
         .id(&asset_id)
         .build();
 
@@ -164,8 +277,9 @@ pub async fn seed_contract_negotiation(
     let offer_id = dataset.offers()[0].id().unwrap();
 
     let request = ContractRequest::builder()
-        .counter_party_address(PROVIDER_PROTOCOL)
-        .counter_party_id(PROVIDER_ID)
+        .counter_party_address(&provider_cfg.protocol_address)
+        .counter_party_id(&provider_cfg.protocol_id)
+        .protocol(consumer_cfg.protocol.clone())
         .policy(
             Policy::builder()
                 .id(offer_id)
@@ -188,9 +302,12 @@ pub async fn seed_contract_negotiation(
 
 pub async fn seed_contract_agreement(
     consumer: &EdcConnectorClient,
+    consumer_cfg: &ClientParams,
     provider: &EdcConnectorClient,
+    provider_cfg: &ClientParams,
 ) -> (String, String, String) {
-    let (contract_negotiation_id, asset_id) = seed_contract_negotiation(consumer, provider).await;
+    let (contract_negotiation_id, asset_id) =
+        seed_contract_negotiation(consumer, consumer_cfg, provider, provider_cfg).await;
 
     wait_for_negotiation_state(
         consumer,
@@ -222,9 +339,12 @@ pub async fn seed_contract_agreement(
 
 pub async fn seed_transfer_process(
     consumer: &EdcConnectorClient,
+    consumer_cfg: &ClientParams,
     provider: &EdcConnectorClient,
+    provider_cfg: &ClientParams,
 ) -> (String, String, String, String) {
-    let (contract_negotiation_id, asset_id) = seed_contract_negotiation(consumer, provider).await;
+    let (contract_negotiation_id, asset_id) =
+        seed_contract_negotiation(consumer, consumer_cfg, provider, provider_cfg).await;
 
     wait_for_negotiation_state(
         consumer,

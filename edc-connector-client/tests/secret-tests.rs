@@ -1,202 +1,205 @@
 mod common;
 
-mod create {
-    use edc_connector_client::{
-        types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
-    };
-    use reqwest::StatusCode;
-    use rstest::rstest;
-    use uuid::Uuid;
+mod secrets {
 
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
+    mod create {
+        use edc_connector_client::{
+            types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
+        };
+        use reqwest::StatusCode;
+        use rstest::rstest;
+        use uuid::Uuid;
 
-    #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[tokio::test]
-    async fn should_create_a_secret(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
+        use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
-        let id = Uuid::new_v4().to_string();
+        #[rstest]
+        #[case(provider_v3())]
+        #[case(provider_v4())]
+        #[tokio::test]
+        async fn should_create_a_secret(#[case] provider: ClientParams) {
+            let client = setup_client(provider);
 
-        let secret = NewSecret::builder().id(&id).value("bar").build();
+            let id = Uuid::new_v4().to_string();
 
-        let response = client.secrets().create(&secret).await.unwrap();
+            let secret = NewSecret::builder().id(&id).value("bar").build();
 
-        assert_eq!(&id, response.id());
-        assert!(response.created_at() > 0);
+            let response = client.secrets().create(&secret).await.unwrap();
+
+            assert_eq!(&id, response.id());
+            assert!(response.created_at() > 0);
+        }
+
+        #[rstest]
+        #[case(provider_v3())]
+        #[case(provider_v4())]
+        #[tokio::test]
+        async fn should_failt_to_create_a_secret_when_existing(#[case] provider: ClientParams) {
+            let client = setup_client(provider);
+
+            let id = Uuid::new_v4().to_string();
+
+            let secret = NewSecret::builder().id(&id).value("bar").build();
+
+            let response = client.secrets().create(&secret).await.unwrap();
+
+            assert_eq!(&id, response.id());
+            assert!(response.created_at() > 0);
+
+            let response = client.secrets().create(&secret).await;
+
+            assert!(matches!(
+                response,
+                Err(Error::ManagementApi(ManagementApiError {
+                    status_code: StatusCode::CONFLICT,
+                    error_detail: ManagementApiErrorDetailKind::Parsed(..)
+                }))
+            ))
+        }
     }
 
-    #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[tokio::test]
-    async fn should_failt_to_create_a_secret_when_existing(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
+    mod delete {
+        use edc_connector_client::{
+            types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
+        };
+        use reqwest::StatusCode;
+        use rstest::rstest;
+        use uuid::Uuid;
 
-        let id = Uuid::new_v4().to_string();
+        use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
-        let secret = NewSecret::builder().id(&id).value("bar").build();
+        #[rstest]
+        #[case(provider_v3())]
+        #[case(provider_v4())]
+        #[tokio::test]
+        async fn should_delete_an_secret(#[case] provider: ClientParams) {
+            let client = setup_client(provider);
+            let id = Uuid::new_v4().to_string();
 
-        let response = client.secrets().create(&secret).await.unwrap();
+            let secret = NewSecret::builder().id(&id).value("bar").build();
 
-        assert_eq!(&id, response.id());
-        assert!(response.created_at() > 0);
+            let asset = client.secrets().create(&secret).await.unwrap();
 
-        let response = client.secrets().create(&secret).await;
+            let response = client.secrets().delete(asset.id()).await;
 
-        assert!(matches!(
-            response,
-            Err(Error::ManagementApi(ManagementApiError {
-                status_code: StatusCode::CONFLICT,
-                error_detail: ManagementApiErrorDetailKind::Parsed(..)
-            }))
-        ))
-    }
-}
+            assert!(response.is_ok());
+        }
 
-mod delete {
-    use edc_connector_client::{
-        types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
-    };
-    use reqwest::StatusCode;
-    use rstest::rstest;
-    use uuid::Uuid;
+        #[rstest]
+        #[case(provider_v3())]
+        #[case(provider_v4())]
+        #[tokio::test]
+        async fn should_fail_to_delete_a_secret_when_not_existing(#[case] provider: ClientParams) {
+            let client = setup_client(provider);
+            let id = Uuid::new_v4().to_string();
 
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
+            let response = client.secrets().delete(&id).await;
 
-    #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[tokio::test]
-    async fn should_delete_an_secret(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
-        let id = Uuid::new_v4().to_string();
-
-        let secret = NewSecret::builder().id(&id).value("bar").build();
-
-        let asset = client.secrets().create(&secret).await.unwrap();
-
-        let response = client.secrets().delete(asset.id()).await;
-
-        assert!(response.is_ok());
+            assert!(matches!(
+                response,
+                Err(Error::ManagementApi(ManagementApiError {
+                    status_code: StatusCode::NOT_FOUND,
+                    error_detail: ManagementApiErrorDetailKind::Parsed(..)
+                }))
+            ))
+        }
     }
 
-    #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[tokio::test]
-    async fn should_fail_to_delete_a_secret_when_not_existing(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
-        let id = Uuid::new_v4().to_string();
+    mod get {
+        use edc_connector_client::{
+            types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
+        };
+        use reqwest::StatusCode;
+        use rstest::rstest;
+        use uuid::Uuid;
 
-        let response = client.secrets().delete(&id).await;
+        use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
-        assert!(matches!(
-            response,
-            Err(Error::ManagementApi(ManagementApiError {
-                status_code: StatusCode::NOT_FOUND,
-                error_detail: ManagementApiErrorDetailKind::Parsed(..)
-            }))
-        ))
-    }
-}
+        #[rstest]
+        #[case(provider_v3())]
+        #[case(provider_v4())]
+        #[tokio::test]
+        async fn should_get_a_secret(#[case] provider: ClientParams) {
+            let client = setup_client(provider);
+            let id = Uuid::new_v4().to_string();
+            let secret = NewSecret::builder().id(&id).value("bar").build();
 
-mod get {
-    use edc_connector_client::{
-        types::secret::NewSecret, Error, ManagementApiError, ManagementApiErrorDetailKind,
-    };
-    use reqwest::StatusCode;
-    use rstest::rstest;
-    use uuid::Uuid;
+            let secret = client.secrets().create(&secret).await.unwrap();
 
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
+            let secret = client.secrets().get(secret.id()).await.unwrap();
 
-    #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[tokio::test]
-    async fn should_get_a_secret(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
-        let id = Uuid::new_v4().to_string();
-        let secret = NewSecret::builder().id(&id).value("bar").build();
+            assert_eq!("bar", secret.value())
+        }
 
-        let secret = client.secrets().create(&secret).await.unwrap();
+        #[rstest]
+        #[case(provider_v3())]
+        #[case(provider_v4())]
+        #[tokio::test]
+        async fn should_fail_to_get_a_secret_when_not_existing(#[case] provider: ClientParams) {
+            let client = setup_client(provider);
+            let id = Uuid::new_v4().to_string();
 
-        let secret = client.secrets().get(secret.id()).await.unwrap();
+            let response = client.secrets().get(&id).await;
 
-        assert_eq!("bar", secret.value())
-    }
-
-    #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[tokio::test]
-    async fn should_fail_to_get_a_secret_when_not_existing(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
-        let id = Uuid::new_v4().to_string();
-
-        let response = client.secrets().get(&id).await;
-
-        assert!(matches!(
-            response,
-            Err(Error::ManagementApi(ManagementApiError {
-                status_code: StatusCode::NOT_FOUND,
-                error_detail: ManagementApiErrorDetailKind::Parsed(..)
-            }))
-        ))
-    }
-}
-
-mod update {
-    use edc_connector_client::{
-        types::secret::{NewSecret, Secret},
-        Error, ManagementApiError, ManagementApiErrorDetailKind,
-    };
-    use reqwest::StatusCode;
-    use rstest::rstest;
-    use uuid::Uuid;
-
-    use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
-
-    #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[tokio::test]
-    async fn should_update_a_secret(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
-        let id = Uuid::new_v4().to_string();
-        let secret = NewSecret::builder().id(&id).value("bar").build();
-
-        client.secrets().create(&secret).await.unwrap();
-
-        let updated_secret = Secret::builder().id(&id).value("bar2").build();
-
-        client.secrets().update(&updated_secret).await.unwrap();
-
-        let secret = client.secrets().get(&id).await.unwrap();
-
-        assert_eq!("bar2", secret.value())
+            assert!(matches!(
+                response,
+                Err(Error::ManagementApi(ManagementApiError {
+                    status_code: StatusCode::NOT_FOUND,
+                    error_detail: ManagementApiErrorDetailKind::Parsed(..)
+                }))
+            ))
+        }
     }
 
-    #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[tokio::test]
-    async fn should_fail_to_update_a_secret_when_not_existing(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
-        let id = Uuid::new_v4().to_string();
+    mod update {
+        use edc_connector_client::{
+            types::secret::{NewSecret, Secret},
+            Error, ManagementApiError, ManagementApiErrorDetailKind,
+        };
+        use reqwest::StatusCode;
+        use rstest::rstest;
+        use uuid::Uuid;
 
-        let updated_secret = Secret::builder().id(&id).value("bar2").build();
+        use crate::common::{provider_v3, provider_v4, setup_client, ClientParams};
 
-        let response = client.secrets().update(&updated_secret).await;
+        #[rstest]
+        #[case(provider_v3())]
+        #[case(provider_v4())]
+        #[tokio::test]
+        async fn should_update_a_secret(#[case] provider: ClientParams) {
+            let client = setup_client(provider);
+            let id = Uuid::new_v4().to_string();
+            let secret = NewSecret::builder().id(&id).value("bar").build();
 
-        assert!(matches!(
-            response,
-            Err(Error::ManagementApi(ManagementApiError {
-                status_code: StatusCode::NOT_FOUND,
-                error_detail: ManagementApiErrorDetailKind::Parsed(..)
-            }))
-        ))
+            client.secrets().create(&secret).await.unwrap();
+
+            let updated_secret = Secret::builder().id(&id).value("bar2").build();
+
+            client.secrets().update(&updated_secret).await.unwrap();
+
+            let secret = client.secrets().get(&id).await.unwrap();
+
+            assert_eq!("bar2", secret.value())
+        }
+
+        #[rstest]
+        #[case(provider_v3())]
+        #[case(provider_v4())]
+        #[tokio::test]
+        async fn should_fail_to_update_a_secret_when_not_existing(#[case] provider: ClientParams) {
+            let client = setup_client(provider);
+            let id = Uuid::new_v4().to_string();
+
+            let updated_secret = Secret::builder().id(&id).value("bar2").build();
+
+            let response = client.secrets().update(&updated_secret).await;
+
+            assert!(matches!(
+                response,
+                Err(Error::ManagementApi(ManagementApiError {
+                    status_code: StatusCode::NOT_FOUND,
+                    error_detail: ManagementApiErrorDetailKind::Parsed(..)
+                }))
+            ))
+        }
     }
 }
