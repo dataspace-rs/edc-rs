@@ -387,12 +387,10 @@ impl Default for EdcClientConnectorBuilder {
     }
 }
 
-#[async_trait::async_trait]
 trait BuilderExt: Sized {
-    async fn authenticated(self, auth: &Auth) -> EdcResult<Self>;
+    fn authenticated(self, auth: &Auth) -> impl Future<Output = EdcResult<Self>>;
 }
 
-#[async_trait::async_trait]
 impl BuilderExt for RequestBuilder {
     async fn authenticated(self, auth: &Auth) -> EdcResult<Self> {
         match auth {
