@@ -1,5 +1,6 @@
 mod common;
 
+#[allow(clippy::unwrap_used)]
 mod assets {
 
     mod create {

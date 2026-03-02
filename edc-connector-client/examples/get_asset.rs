@@ -13,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!(
         "Property description: {:?}",
-        asset.property::<String>("description").unwrap()
+        asset.property::<String>("description")?
     );
 
     Ok(())

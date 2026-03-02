@@ -93,6 +93,7 @@ pub fn consumer_v4() -> ClientParams {
         .build()
 }
 
+#[allow(clippy::unwrap_used)]
 pub fn consumer_virtual_edc() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:39193/api/mgmt".to_string())
@@ -114,6 +115,7 @@ pub fn consumer_virtual_edc() -> ClientParams {
         .build()
 }
 
+#[allow(clippy::unwrap_used)]
 pub fn provider_virtual_edc() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:39193/api/mgmt".to_string())
@@ -135,6 +137,7 @@ pub fn provider_virtual_edc() -> ClientParams {
         .build()
 }
 
+#[allow(clippy::unwrap_used)]
 pub fn setup_provider_client_with_auth(auth: Auth) -> EdcConnectorClient {
     EdcConnectorClient::builder()
         .management_url("http://localhost:29193/management")
@@ -143,6 +146,7 @@ pub fn setup_provider_client_with_auth(auth: Auth) -> EdcConnectorClient {
         .unwrap()
 }
 
+#[allow(clippy::unwrap_used)]
 pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
     if let Some(participant_context) = params.participant_context.clone() {
         let auth = OAuth2Config::builder()
@@ -182,7 +186,7 @@ pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
                         participant_context.clone(),
                     );
 
-                    let _ = client
+                    client
                         .participant_configs()
                         .save(
                             &participant_context,
@@ -206,6 +210,7 @@ pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
         .unwrap()
 }
 
+#[allow(clippy::unwrap_used)]
 pub async fn seed(client: &EdcConnectorClient) -> (String, String, String) {
     let asset = NewAsset::builder()
         .id(Uuid::new_v4().to_string().as_str())
@@ -255,6 +260,7 @@ pub async fn seed(client: &EdcConnectorClient) -> (String, String, String) {
     )
 }
 
+#[allow(clippy::unwrap_used)]
 pub async fn seed_contract_negotiation(
     consumer: &EdcConnectorClient,
     consumer_cfg: &ClientParams,
@@ -302,6 +308,7 @@ pub async fn seed_contract_negotiation(
     (response.id().to_string(), asset_id)
 }
 
+#[allow(clippy::unwrap_used)]
 pub async fn seed_contract_agreement(
     consumer: &EdcConnectorClient,
     consumer_cfg: &ClientParams,
@@ -339,6 +346,7 @@ pub async fn seed_contract_agreement(
     )
 }
 
+#[allow(clippy::unwrap_used)]
 pub async fn seed_transfer_process(
     consumer: &EdcConnectorClient,
     consumer_cfg: &ClientParams,
@@ -390,6 +398,7 @@ pub async fn seed_transfer_process(
     )
 }
 
+#[allow(clippy::unwrap_used)]
 pub async fn wait_for_negotiation_state(
     client: &EdcConnectorClient,
     id: &str,
@@ -416,6 +425,7 @@ pub async fn wait_for_negotiation_state(
     .unwrap();
 }
 
+#[allow(clippy::unwrap_used)]
 pub async fn wait_for_transfer_state(
     client: &EdcConnectorClient,
     id: &str,
@@ -442,6 +452,7 @@ pub async fn wait_for_transfer_state(
     .unwrap();
 }
 
+#[allow(clippy::unwrap_used)]
 pub async fn wait_for<F, Fut, R, E>(f: F) -> Result<R, E>
 where
     F: Fn() -> Fut,

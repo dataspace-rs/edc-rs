@@ -2,7 +2,7 @@ mod common;
 
 mod catalog {
 
-    mod catalog {
+    mod local_catalog {
         use edc_connector_client::{
             types::{catalog::CatalogRequest, query::Query},
             EDC_NAMESPACE,

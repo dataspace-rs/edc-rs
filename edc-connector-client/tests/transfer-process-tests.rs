@@ -67,7 +67,7 @@ mod transfer_processes {
             let request = TransferRequest::builder()
                 .counter_party_address(consumer_cfg.protocol_address)
                 .protocol(consumer_cfg.protocol)
-                .contract_id(&Uuid::new_v4().to_string())
+                .contract_id(Uuid::new_v4().to_string())
                 .transfer_type("HttpData-PULL")
                 .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
                 .build();
