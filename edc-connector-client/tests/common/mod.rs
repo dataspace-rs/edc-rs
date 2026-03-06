@@ -3,6 +3,7 @@
 use std::{collections::HashMap, future::Future, thread, time::Duration};
 
 use bon::Builder;
+use edc_connector_client::types::ExtraTokenFields;
 use edc_connector_client::{
     types::{
         asset::NewAsset,
@@ -18,6 +19,7 @@ use edc_connector_client::{
     },
     Auth, EdcConnectorApiVersion, EdcConnectorClient, OAuth2Config, EDC_NAMESPACE,
 };
+use serde::Deserialize;
 use tokio::time::sleep;
 use uuid::Uuid;
 
@@ -26,6 +28,11 @@ pub const PROVIDER_ID: &str = "provider";
 
 pub const CONSUMER_PROTOCOL: &str = "http://provider-connector:9194/protocol/2025-1";
 pub const CONSUMER_ID: &str = "consumer";
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct CatalogExtraFields {}
+
+impl ExtraTokenFields for CatalogExtraFields {}
 
 #[derive(Builder, Clone)]
 pub struct ClientParams {
@@ -278,7 +285,7 @@ pub async fn seed_contract_negotiation(
 
     let dataset = consumer
         .catalogue()
-        .dataset(&dataset_request)
+        .dataset::<CatalogExtraFields>(&dataset_request)
         .await
         .unwrap();
 

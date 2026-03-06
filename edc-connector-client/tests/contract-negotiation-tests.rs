@@ -16,7 +16,8 @@ mod contract_negotiations {
 
         use crate::common::{
             consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed, setup_client, ClientParams, PROVIDER_ID,
+            provider_virtual_edc, seed, setup_client, CatalogExtraFields, ClientParams,
+            PROVIDER_ID,
         };
 
         #[rstest]
@@ -45,7 +46,7 @@ mod contract_negotiations {
 
             let dataset = consumer
                 .catalogue()
-                .dataset(&dataset_request)
+                .dataset::<CatalogExtraFields>(&dataset_request)
                 .await
                 .unwrap();
 
@@ -101,7 +102,7 @@ mod contract_negotiations {
 
             let dataset = consumer
                 .catalogue()
-                .dataset(&dataset_request)
+                .dataset::<CatalogExtraFields>(&dataset_request)
                 .await
                 .unwrap();
 

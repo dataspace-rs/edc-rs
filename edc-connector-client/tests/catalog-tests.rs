@@ -11,7 +11,7 @@ mod catalog {
 
         use crate::common::{
             consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed, setup_client, ClientParams,
+            provider_virtual_edc, seed, setup_client, CatalogExtraFields, ClientParams,
         };
 
         #[rstest]
@@ -43,7 +43,11 @@ mod catalog {
                 )
                 .build();
 
-            let response = consumer.catalogue().request(&request).await.unwrap();
+            let response = consumer
+                .catalogue()
+                .request::<CatalogExtraFields>(&request)
+                .await
+                .unwrap();
 
             let dataset = response.datasets().iter().find(|ds| ds.id() == asset_id);
 
@@ -57,7 +61,7 @@ mod catalog {
 
         use crate::common::{
             consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed, setup_client, ClientParams,
+            provider_virtual_edc, seed, setup_client, CatalogExtraFields, ClientParams,
         };
 
         #[rstest]
@@ -84,7 +88,11 @@ mod catalog {
                 .id(&asset_id)
                 .build();
 
-            let dataset = consumer.catalogue().dataset(&request).await.unwrap();
+            let dataset = consumer
+                .catalogue()
+                .dataset::<CatalogExtraFields>(&request)
+                .await
+                .unwrap();
 
             assert_eq!(asset_id, dataset.id());
         }

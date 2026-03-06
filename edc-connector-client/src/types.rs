@@ -1,6 +1,7 @@
-use serde::{Deserialize, Serialize};
-
 use crate::DATASPACE_PROTOCOL;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 pub mod asset;
 pub mod callback_address;
@@ -19,6 +20,8 @@ pub mod query;
 pub mod response;
 pub mod secret;
 pub mod transfer_process;
+
+pub trait ExtraTokenFields: DeserializeOwned + Debug {}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Protocol(String);
