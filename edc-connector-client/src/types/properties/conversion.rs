@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{Number, Value};
 
 use crate::error::ConversionError;
 
@@ -51,6 +51,30 @@ impl ToValue for &String {
 impl ToValue for String {
     fn into_value(self) -> Value {
         Value::String(self)
+    }
+}
+
+impl ToValue for usize {
+    fn into_value(self) -> Value {
+        Value::Number(Number::from(self))
+    }
+}
+
+impl ToValue for isize {
+    fn into_value(self) -> Value {
+        Value::Number(Number::from(self))
+    }
+}
+
+impl ToValue for u32 {
+    fn into_value(self) -> Value {
+        Value::Number(Number::from(self))
+    }
+}
+
+impl ToValue for u64 {
+    fn into_value(self) -> Value {
+        Value::Number(Number::from(self))
     }
 }
 
