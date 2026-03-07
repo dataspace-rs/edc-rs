@@ -7,14 +7,26 @@ use super::{policy::Policy, query::Query, ExtraTokenFields, Protocol};
 #[serde_as]
 #[derive(Deserialize, Debug)]
 pub struct Catalog<EF: ExtraTokenFields> {
+    #[serde(rename = "@id")]
+    id: String,
     #[serde(rename = "dataset", alias = "dcat:dataset")]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     datasets: Vec<Dataset<EF>>,
+    #[serde(rename = "participantId", alias = "dspace:participantId")]
+    participant_id: Option<String>,
 }
 
 impl<EF: ExtraTokenFields> Catalog<EF> {
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
     pub fn datasets(&self) -> &[Dataset<EF>] {
         &self.datasets
+    }
+
+    pub fn participant_id(&self) -> &Option<String> {
+        &self.participant_id
     }
 }
 
