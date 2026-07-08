@@ -399,6 +399,9 @@ impl BuilderExt for RequestBuilder {
             Auth::OAuth2(client) => {
                 Ok(self.header("Authorization", format!("Bearer {}", client.token().await?)))
             }
+            Auth::BearerToken(token) => {
+                Ok(self.header("Authorization", format!("Bearer {}", token)))
+            }
         }
     }
 }
