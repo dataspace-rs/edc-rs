@@ -35,7 +35,7 @@ impl EdcConnectorApiVersion {
     pub fn as_str(&self) -> &str {
         match self {
             EdcConnectorApiVersion::V3 => "v3",
-            EdcConnectorApiVersion::V4 => "v4beta",
+            EdcConnectorApiVersion::V4 => "v4",
         }
     }
 }

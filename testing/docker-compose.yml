@@ -1,6 +1,6 @@
 services:
   consumer-connector:
-    image: ${CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/connector:0.15.0}
+    image: ${CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/connector:0.17.0}
     ports:
       - "19191:9191" # connector default
       - "19192:9192" # connector control
@@ -20,7 +20,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   provider-connector:
-    image: ${CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/connector:0.15.0}
+    image: ${CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/connector:0.17.0}
     ports:
       - "29191:9191" # connector default
       - "29192:9192" # connector control
@@ -39,7 +39,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   virtual-connector:
-    image: ${VIRTUAL_CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/virtual-connector:latest}
+    image: ${VIRTUAL_CONNECTOR_IMAGE:-ghcr.io/dataspace-rs/virtual-connector:0.17.0}
     ports:
       - "39193:8081" # connector management
       - "1046:1044" # data-plane public
@@ -48,6 +48,7 @@ services:
       EDC_IAM_OAUTH2_JWKS_URL: "http://keycloak:8080/realms/edcv/protocol/openid-connect/certs"
       EDC_POLICY_VALIDATION_ENABLED: "false"
       EDC_DSP_CALLBACK_ADDRESS: "http://virtual-connector:8282/api/protocol"
+      WEB_HTTP_PORT: 8888
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

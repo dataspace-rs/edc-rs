@@ -21,10 +21,10 @@ use edc_connector_client::{
 use tokio::time::sleep;
 use uuid::Uuid;
 
-pub const PROVIDER_PROTOCOL: &str = "http://provider-connector:9194/protocol";
+pub const PROVIDER_PROTOCOL: &str = "http://provider-connector:9194/protocol/2025-1";
 pub const PROVIDER_ID: &str = "provider";
 
-pub const CONSUMER_PROTOCOL: &str = "http://provider-connector:9194/protocol";
+pub const CONSUMER_PROTOCOL: &str = "http://provider-connector:9194/protocol/2025-1";
 pub const CONSUMER_ID: &str = "consumer";
 
 #[derive(Builder, Clone)]

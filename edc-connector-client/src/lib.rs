@@ -44,6 +44,6 @@ pub use error::{
 };
 
 pub const EDC_NAMESPACE: &str = "https://w3id.org/edc/v0.0.1/ns/";
-pub const DATASPACE_PROTOCOL: &str = "dataspace-protocol-http";
+pub const DATASPACE_PROTOCOL: &str = "dataspace-protocol-http:2025-1";
 
 pub type EdcResult<T> = Result<T, Error>;

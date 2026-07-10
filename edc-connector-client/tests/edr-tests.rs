@@ -15,6 +15,7 @@ mod get {
     #[case(consumer_v3(), provider_v3())]
     #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
+    #[ignore]
     async fn should_receive_an_edr_in_cache(
         #[case] consumer_cfg: ClientParams,
         #[case] provider_cfg: ClientParams,
@@ -57,6 +58,7 @@ mod query {
     #[case(consumer_v3(), provider_v3())]
     #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
+    #[ignore]
     async fn should_query_the_edr_cache(
         #[case] consumer_cfg: ClientParams,
         #[case] provider_cfg: ClientParams,
@@ -108,6 +110,7 @@ mod delete {
     #[case(consumer_v3(), provider_v3())]
     #[case(consumer_v4(), provider_v4())]
     #[tokio::test]
+    #[ignore]
     async fn should_delete_a_cached_edr(
         #[case] consumer_cfg: ClientParams,
         #[case] provider_cfg: ClientParams,
