@@ -52,4 +52,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path edc-connector-client/Cargo.toml --skip case_3
+          args: --manifest-path edc-connector-client/Cargo.toml -- --skip case_3
