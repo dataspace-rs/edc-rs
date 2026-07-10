@@ -6,6 +6,7 @@ use std::fmt::Debug;
 pub mod asset;
 pub mod callback_address;
 pub mod catalog;
+pub mod common_expression_language;
 pub mod context;
 pub mod contract_agreement;
 pub mod contract_definition;

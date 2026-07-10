@@ -1,13 +1,15 @@
-use std::{future::Future, sync::Arc};
+mod edc_connector_api_version;
 
+pub use edc_connector_api_version::EdcConnectorApiVersion;
 use reqwest::{Client, RequestBuilder, Response};
 use serde::{de::DeserializeOwned, Serialize};
+use std::{future::Future, sync::Arc};
 
 use crate::{
     api::{
-        AssetApi, CatalogApi, ContractAgreementApi, ContractDefinitionApi, ContractNegotiationApi,
-        DataPlaneApi, EdrApi, ParticipantContextApi, ParticipantContextConfigApi, PolicyApi,
-        SecretsApi, TransferProcessApi,
+        AssetApi, CatalogApi, CommonExpressionLanguageApi, ContractAgreementApi,
+        ContractDefinitionApi, ContractNegotiationApi, DataPlaneApi, EdrApi, ParticipantContextApi,
+        ParticipantContextConfigApi, PolicyApi, SecretsApi, TransferProcessApi,
     },
     error::{
         BuilderError, ManagementApiError, ManagementApiErrorDetail, ManagementApiErrorDetailKind,
@@ -19,32 +21,16 @@ use crate::{
 #[derive(Clone)]
 pub struct EdcConnectorClient(Arc<EdcConnectorClientInternal>);
 
-#[derive(Clone)]
-pub enum EdcConnectorApiVersion {
-    V3,
-    V4,
-}
-
 #[allow(unused)]
 pub enum ApiTarget {
     Participant,
     Admin,
 }
 
-impl EdcConnectorApiVersion {
-    pub fn as_str(&self) -> &str {
-        match self {
-            EdcConnectorApiVersion::V3 => "v3",
-            EdcConnectorApiVersion::V4 => "v4",
-        }
-    }
-}
-
 pub(crate) struct EdcConnectorClientInternal {
     client: Client,
     pub(crate) management_url: String,
     pub(crate) auth: Auth,
-    pub(crate) version: EdcConnectorApiVersion,
     pub(crate) participant_context: Option<String>,
 }
 
@@ -53,14 +39,12 @@ impl EdcConnectorClientInternal {
         client: Client,
         management_url: String,
         auth: Auth,
-        version: EdcConnectorApiVersion,
         participant_context: Option<String>,
     ) -> Self {
         Self {
             client,
             management_url,
             auth,
-            version,
             participant_context,
         }
     }
@@ -195,24 +179,32 @@ impl EdcConnectorClientInternal {
         }
     }
 
-    pub(crate) fn path_for(&self, paths: &[&str]) -> String {
-        self.path_for_target(ApiTarget::Participant, paths)
+    pub(crate) fn path_for(&self, version: EdcConnectorApiVersion, paths: &[&str]) -> String {
+        self.path_for_target(ApiTarget::Participant, version, paths)
     }
 
-    pub(crate) fn path_for_target(&self, target: ApiTarget, paths: &[&str]) -> String {
-        let base: &[&str] = if let Some(pc) = &self.participant_context {
+    pub(crate) fn path_for_target(
+        &self,
+        target: ApiTarget,
+        mut version: EdcConnectorApiVersion,
+        paths: &[&str],
+    ) -> String {
+        let base: &[&str] = if let Some(participant_context) = &self.participant_context {
+            version = EdcConnectorApiVersion::V4Alpha;
+
             match target {
                 ApiTarget::Participant => &[
                     self.management_url.as_str(),
-                    "v4alpha",
+                    version.as_str(),
                     "participants",
-                    pc.as_str(),
+                    participant_context.as_str(),
                 ],
-                ApiTarget::Admin => &[self.management_url.as_str(), "v4alpha"],
+                ApiTarget::Admin => &[self.management_url.as_str(), version.as_str()],
             }
         } else {
-            &[self.management_url.as_str(), self.version.as_str()]
+            &[self.management_url.as_str(), version.as_str()]
         };
+
         base.iter()
             .chain(paths.iter())
             .copied()
@@ -220,16 +212,21 @@ impl EdcConnectorClientInternal {
             .join("/")
     }
 
-    pub(crate) fn context_for<'a, T>(&'a self, body: &'a T) -> WithContextRef<'a, T> {
-        self.context_for_with_opts(body, false)
+    pub(crate) fn context_for<'a, T>(
+        &'a self,
+        version: EdcConnectorApiVersion,
+        body: &'a T,
+    ) -> WithContextRef<'a, T> {
+        self.context_for_with_opts(version, body, false)
     }
 
     pub(crate) fn context_for_with_opts<'a, T>(
         &'a self,
+        version: EdcConnectorApiVersion,
         body: &'a T,
         include_odrl: bool,
     ) -> WithContextRef<'a, T> {
-        match self.version {
+        match version {
             EdcConnectorApiVersion::V3 => {
                 if include_odrl {
                     WithContextRef::odrl_context(body)
@@ -237,7 +234,9 @@ impl EdcConnectorClientInternal {
                     WithContextRef::default_context(body)
                 }
             }
+            EdcConnectorApiVersion::V4Alpha => WithContextRef::edc_v4_context(body),
             EdcConnectorApiVersion::V4 => WithContextRef::edc_v4_context(body),
+            EdcConnectorApiVersion::V5Beta => WithContextRef::edc_v4_context(body),
         }
     }
 }
@@ -255,14 +254,12 @@ impl EdcConnectorClient {
         client: Client,
         management_url: String,
         auth: Auth,
-        version: EdcConnectorApiVersion,
         participant_context: Option<String>,
     ) -> Self {
         Self(Arc::new(EdcConnectorClientInternal::new(
             client,
             management_url,
             auth,
-            version,
             participant_context,
         )))
     }
@@ -271,63 +268,74 @@ impl EdcConnectorClient {
         EdcClientConnectorBuilder::default()
     }
 
-    pub fn assets(&self) -> AssetApi<'_> {
-        AssetApi::new(&self.0)
+    pub fn assets(&self, version: EdcConnectorApiVersion) -> AssetApi<'_> {
+        AssetApi::new(&self.0, version)
     }
 
-    pub fn policies(&self) -> PolicyApi<'_> {
-        PolicyApi::new(&self.0)
+    pub fn policies(&self, version: EdcConnectorApiVersion) -> PolicyApi<'_> {
+        PolicyApi::new(&self.0, version)
     }
 
-    pub fn contract_definitions(&self) -> ContractDefinitionApi<'_> {
-        ContractDefinitionApi::new(&self.0)
+    pub fn contract_definitions(
+        &self,
+        version: EdcConnectorApiVersion,
+    ) -> ContractDefinitionApi<'_> {
+        ContractDefinitionApi::new(&self.0, version)
     }
 
-    pub fn catalogue(&self) -> CatalogApi<'_> {
-        CatalogApi::new(&self.0)
+    pub fn catalogue(&self, version: EdcConnectorApiVersion) -> CatalogApi<'_> {
+        CatalogApi::new(&self.0, version)
     }
 
-    pub fn contract_negotiations(&self) -> ContractNegotiationApi<'_> {
-        ContractNegotiationApi::new(&self.0)
+    pub fn contract_negotiations(
+        &self,
+        version: EdcConnectorApiVersion,
+    ) -> ContractNegotiationApi<'_> {
+        ContractNegotiationApi::new(&self.0, version)
     }
 
-    pub fn contract_agreements(&self) -> ContractAgreementApi<'_> {
-        ContractAgreementApi::new(&self.0)
+    pub fn contract_agreements(&self, version: EdcConnectorApiVersion) -> ContractAgreementApi<'_> {
+        ContractAgreementApi::new(&self.0, version)
     }
 
-    pub fn transfer_processes(&self) -> TransferProcessApi<'_> {
-        TransferProcessApi::new(&self.0)
+    pub fn transfer_processes(&self, version: EdcConnectorApiVersion) -> TransferProcessApi<'_> {
+        TransferProcessApi::new(&self.0, version)
     }
 
-    pub fn data_planes(&self) -> DataPlaneApi<'_> {
-        DataPlaneApi::new(&self.0)
+    pub fn data_planes(&self, version: EdcConnectorApiVersion) -> DataPlaneApi<'_> {
+        DataPlaneApi::new(&self.0, version)
     }
 
-    pub fn edrs(&self) -> EdrApi<'_> {
-        EdrApi::new(&self.0)
+    pub fn edrs(&self, version: EdcConnectorApiVersion) -> EdrApi<'_> {
+        EdrApi::new(&self.0, version)
     }
 
-    pub fn secrets(&self) -> SecretsApi<'_> {
-        SecretsApi::new(&self.0)
+    pub fn secrets(&self, version: EdcConnectorApiVersion) -> SecretsApi<'_> {
+        SecretsApi::new(&self.0, version)
     }
 
-    pub fn participants(&self) -> ParticipantContextApi<'_> {
-        ParticipantContextApi::new(&self.0)
+    pub fn participants(&self, version: EdcConnectorApiVersion) -> ParticipantContextApi<'_> {
+        ParticipantContextApi::new(&self.0, version)
     }
 
-    pub fn participant_configs(&self) -> ParticipantContextConfigApi<'_> {
-        ParticipantContextConfigApi::new(&self.0)
+    pub fn participant_configs(
+        &self,
+        version: EdcConnectorApiVersion,
+    ) -> ParticipantContextConfigApi<'_> {
+        ParticipantContextConfigApi::new(&self.0, version)
     }
 
-    pub fn api_version(&self) -> EdcConnectorApiVersion {
-        self.0.version.clone()
+    pub fn common_expression_language(
+        &self,
+        version: EdcConnectorApiVersion,
+    ) -> CommonExpressionLanguageApi<'_> {
+        CommonExpressionLanguageApi::new(&self.0, version)
     }
 }
 
 pub struct EdcClientConnectorBuilder {
     management_url: Option<String>,
     auth: Auth,
-    version: EdcConnectorApiVersion,
     participant_context: Option<String>,
 }
 
@@ -339,11 +347,6 @@ impl EdcClientConnectorBuilder {
 
     pub fn with_auth(mut self, auth: Auth) -> Self {
         self.auth = auth;
-        self
-    }
-
-    pub fn version(mut self, version: EdcConnectorApiVersion) -> Self {
-        self.version = version;
         self
     }
 
@@ -370,7 +373,6 @@ impl EdcClientConnectorBuilder {
             client,
             url,
             self.auth,
-            self.version,
             self.participant_context,
         ))
     }
@@ -381,7 +383,6 @@ impl Default for EdcClientConnectorBuilder {
         Self {
             management_url: Default::default(),
             auth: Auth::NoAuth,
-            version: EdcConnectorApiVersion::V3,
             participant_context: None,
         }
     }

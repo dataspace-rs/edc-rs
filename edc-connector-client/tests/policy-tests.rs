@@ -2,23 +2,24 @@ mod common;
 mod create {
     use edc_connector_client::{
         types::policy::{NewPolicyDefinition, Policy},
-        Error, ManagementApiError, ManagementApiErrorDetailKind,
+        EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{
-        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-    };
+    use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
-    async fn should_create_a_policy_definition(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
+    async fn should_create_a_policy_definition(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
 
         let id = Uuid::new_v4().to_string();
 
@@ -27,21 +28,26 @@ mod create {
             .policy(Policy::builder().build())
             .build();
 
-        let response = client.policies().create(&policy_definition).await.unwrap();
+        let response = client
+            .policies(EdcConnectorApiVersion::V4)
+            .create(&policy_definition)
+            .await
+            .unwrap();
 
         assert_eq!(&id, response.id());
         assert!(response.created_at() > 0);
     }
 
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
     async fn should_failt_to_create_an_policy_definition_when_existing(
         #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
     ) {
-        let client = setup_client(provider);
+        let client = setup_client(provider, version);
 
         let id = Uuid::new_v4().to_string();
         let policy_definition = NewPolicyDefinition::builder()
@@ -49,12 +55,16 @@ mod create {
             .policy(Policy::builder().build())
             .build();
 
-        let response = client.policies().create(&policy_definition).await.unwrap();
+        let response = client
+            .policies(version)
+            .create(&policy_definition)
+            .await
+            .unwrap();
 
         assert_eq!(&id, response.id());
         assert!(response.created_at() > 0);
 
-        let response = client.policies().create(&policy_definition).await;
+        let response = client.policies(version).create(&policy_definition).await;
 
         assert!(matches!(
             response,
@@ -69,48 +79,54 @@ mod create {
 mod delete {
     use edc_connector_client::{
         types::policy::{NewPolicyDefinition, Policy},
-        Error, ManagementApiError, ManagementApiErrorDetailKind,
+        EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{
-        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-    };
+    use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
-    async fn should_delete_a_policy_definition(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
+    async fn should_delete_a_policy_definition(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
         let id = Uuid::new_v4().to_string();
         let policy_definition = NewPolicyDefinition::builder()
             .id(&id)
             .policy(Policy::builder().build())
             .build();
 
-        let definition = client.policies().create(&policy_definition).await.unwrap();
+        let definition = client
+            .policies(version)
+            .create(&policy_definition)
+            .await
+            .unwrap();
 
-        let response = client.policies().delete(definition.id()).await;
+        let response = client.policies(version).delete(definition.id()).await;
 
         assert!(response.is_ok());
     }
 
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
     async fn should_fail_to_delete_policy_definition_when_not_existing(
         #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
     ) {
-        let client = setup_client(provider);
+        let client = setup_client(provider, version);
         let id = Uuid::new_v4().to_string();
 
-        let response = client.policies().delete(&id).await;
+        let response = client.policies(version).delete(&id).await;
 
         assert!(matches!(
             response,
@@ -134,17 +150,18 @@ mod get {
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{
-        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-    };
+    use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
-    async fn should_get_a_policy_definition(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
+    async fn should_get_a_policy_definition(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
         let id = Uuid::new_v4().to_string();
 
         let policy = Policy::builder()
@@ -163,9 +180,13 @@ mod get {
             .policy(policy.clone())
             .build();
 
-        let created = client.policies().create(&policy_definition).await.unwrap();
+        let created = client
+            .policies(version)
+            .create(&policy_definition)
+            .await
+            .unwrap();
 
-        let definition = client.policies().get(created.id()).await.unwrap();
+        let definition = client.policies(version).get(created.id()).await.unwrap();
 
         assert_eq!(definition.policy().kind(), &PolicyKind::Set);
         assert_eq!(definition.policy().permissions().len(), 1);
@@ -176,7 +197,7 @@ mod get {
 
         let constraint = &permission.constraints()[0];
 
-        match client.api_version() {
+        match version {
             EdcConnectorApiVersion::V3 => {
                 assert_eq!(permission.action().id(), "odrl:use");
 
@@ -189,7 +210,9 @@ mod get {
                     ))
                 );
             }
-            EdcConnectorApiVersion::V4 => {
+            EdcConnectorApiVersion::V4Alpha
+            | EdcConnectorApiVersion::V4
+            | EdcConnectorApiVersion::V5Beta => {
                 assert_eq!(permission.action().id(), "use");
 
                 assert_eq!(
@@ -205,17 +228,18 @@ mod get {
     }
 
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
     async fn should_fail_to_get_a_policy_definition_when_not_existing(
         #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
     ) {
-        let client = setup_client(provider);
+        let client = setup_client(provider, version);
         let id = Uuid::new_v4().to_string();
 
-        let response = client.policies().get(&id).await;
+        let response = client.policies(version).get(&id).await;
 
         assert!(matches!(
             response,
@@ -230,30 +254,31 @@ mod get {
 mod update {
     use edc_connector_client::{
         types::policy::{Action, NewPolicyDefinition, Permission, Policy, PolicyDefinition},
-        Error, ManagementApiError, ManagementApiErrorDetailKind,
+        EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
     };
     use reqwest::StatusCode;
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{
-        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-    };
+    use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
-    async fn should_update_policy_definition(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
+    async fn should_update_policy_definition(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
         let id = Uuid::new_v4().to_string();
         let new_policy = NewPolicyDefinition::builder()
             .id(&id)
             .policy(Policy::builder().build())
             .build();
 
-        client.policies().create(&new_policy).await.unwrap();
+        client.policies(version).create(&new_policy).await.unwrap();
 
         let updated_policy = PolicyDefinition::builder()
             .id(&id)
@@ -264,22 +289,31 @@ mod update {
             )
             .build();
 
-        client.policies().update(&updated_policy).await.unwrap();
+        client
+            .policies(version)
+            .update(&updated_policy)
+            .await
+            .unwrap();
 
-        let definition = client.policies().get(&id).await.unwrap();
+        let definition = client
+            .policies(EdcConnectorApiVersion::V4)
+            .get(&id)
+            .await
+            .unwrap();
 
         assert_eq!(1, definition.policy().permissions().len());
     }
 
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
     async fn should_fail_to_update_an_policy_definition_when_not_existing(
         #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
     ) {
-        let client = setup_client(provider);
+        let client = setup_client(provider, version);
         let id = Uuid::new_v4().to_string();
 
         let updated_policy = PolicyDefinition::builder()
@@ -291,7 +325,7 @@ mod update {
             )
             .build();
 
-        let response = client.policies().update(&updated_policy).await;
+        let response = client.policies(version).update(&updated_policy).await;
 
         assert!(matches!(
             response,
@@ -304,34 +338,35 @@ mod update {
 }
 
 mod query {
+    use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
     use edc_connector_client::types::{
         policy::{NewPolicyDefinition, Policy},
         query::Query,
     };
+    use edc_connector_client::EdcConnectorApiVersion;
     use rstest::rstest;
     use uuid::Uuid;
 
-    use crate::common::{
-        provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-    };
-
     #[rstest]
-    #[case(provider_v3())]
-    #[case(provider_v4())]
-    #[case(provider_virtual_edc())]
+    #[case(provider(), EdcConnectorApiVersion::V3)]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
     #[tokio::test]
-    async fn should_query_policy_definitions(#[case] provider: ClientParams) {
-        let client = setup_client(provider);
+    async fn should_query_policy_definitions(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
         let id = Uuid::new_v4().to_string();
         let new_policy = NewPolicyDefinition::builder()
             .id(&id)
             .policy(Policy::builder().build())
             .build();
 
-        client.policies().create(&new_policy).await.unwrap();
+        client.policies(version).create(&new_policy).await.unwrap();
 
         let definitions = client
-            .policies()
+            .policies(version)
             .query(Query::builder().filter("id", "=", id).build())
             .await
             .unwrap();

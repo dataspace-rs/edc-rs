@@ -5,30 +5,35 @@ mod catalog {
     mod local_catalog {
         use edc_connector_client::{
             types::{catalog::CatalogRequest, query::Query},
-            EDC_NAMESPACE,
+            EdcConnectorApiVersion, EDC_NAMESPACE,
         };
         use rstest::rstest;
 
         use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed, setup_client, CatalogExtraFields, ClientParams,
+            consumer, consumer_virtual_edc, provider, provider_virtual_edc, seed, setup_client,
+            CatalogExtraFields, ClientParams,
         };
 
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_virtual_edc())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V4
+        )]
         #[tokio::test]
         async fn should_get_the_catalog(
             #[case] consumer: ClientParams,
             #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
             use crate::common::PROVIDER_ID;
 
             let provider_protocol_addr = provider.protocol_address.clone();
             let protocol = consumer.protocol.clone();
-            let consumer = setup_client(consumer);
-            let provider = setup_client(provider);
+            let consumer = setup_client(consumer, version);
+            let provider = setup_client(provider, version);
 
             let (asset_id, _, _) = seed(&provider).await;
 
@@ -38,13 +43,13 @@ mod catalog {
                 .protocol(protocol)
                 .query_spec(
                     Query::builder()
-                        .filter(&format!("{}id", EDC_NAMESPACE), "=", asset_id.to_string())
+                        .filter(&format!("{EDC_NAMESPACE}id"), "=", asset_id.to_string())
                         .build(),
                 )
                 .build();
 
             let response = consumer
-                .catalogue()
+                .catalogue(version)
                 .request::<CatalogExtraFields>(&request)
                 .await
                 .unwrap();
@@ -56,28 +61,33 @@ mod catalog {
     }
 
     mod dataset {
+        use crate::common::{
+            consumer, consumer_virtual_edc, provider, provider_virtual_edc, seed, setup_client,
+            CatalogExtraFields, ClientParams,
+        };
         use edc_connector_client::types::catalog::DatasetRequest;
+        use edc_connector_client::EdcConnectorApiVersion;
         use rstest::rstest;
 
-        use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed, setup_client, CatalogExtraFields, ClientParams,
-        };
-
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_virtual_edc())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V4
+        )]
         #[tokio::test]
         async fn should_get_the_dataset(
             #[case] consumer: ClientParams,
             #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
             let provider_protocol_addr = provider.protocol_address.clone();
             let provider_protocol_id = provider.protocol_id.clone();
             let protocol = consumer.protocol.clone();
-            let consumer = setup_client(consumer);
-            let provider = setup_client(provider);
+            let consumer = setup_client(consumer, version);
+            let provider = setup_client(provider, version);
 
             let (asset_id, _, _) = seed(&provider).await;
 
@@ -89,7 +99,7 @@ mod catalog {
                 .build();
 
             let dataset = consumer
-                .catalogue()
+                .catalogue(version)
                 .dataset::<CatalogExtraFields>(&request)
                 .await
                 .unwrap();
