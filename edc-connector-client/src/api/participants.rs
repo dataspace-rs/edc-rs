@@ -5,30 +5,49 @@ use crate::{
         participants::{NewParticipantContext, ParticipantContextConfig},
         response::IdResponse,
     },
-    EdcResult,
+    EdcConnectorApiVersion, EdcResult,
 };
 
-pub struct ParticipantContextApi<'a>(&'a EdcConnectorClientInternal);
+const PARTICIPANTS_PATH: &str = "participants";
+
+pub struct ParticipantContextApi<'a> {
+    client: &'a EdcConnectorClientInternal,
+    version: EdcConnectorApiVersion,
+}
 
 impl<'a> ParticipantContextApi<'a> {
-    pub(crate) fn new(client: &'a EdcConnectorClientInternal) -> ParticipantContextApi<'a> {
-        ParticipantContextApi(client)
+    pub(crate) fn new(
+        client: &'a EdcConnectorClientInternal,
+        version: EdcConnectorApiVersion,
+    ) -> ParticipantContextApi<'a> {
+        ParticipantContextApi { client, version }
     }
 
     pub async fn create(&self, ctx: &NewParticipantContext) -> EdcResult<IdResponse<String>> {
-        let url = self.0.path_for_target(ApiTarget::Admin, &["participants"]);
-        self.0
-            .post::<_, WithContext<IdResponse<String>>>(url, &self.0.context_for(ctx))
+        let url = self
+            .client
+            .path_for_target(ApiTarget::Admin, self.version, &[PARTICIPANTS_PATH]);
+        self.client
+            .post::<_, WithContext<IdResponse<String>>>(
+                url,
+                &self.client.context_for(self.version, ctx),
+            )
             .await
             .map(|ctx| ctx.inner)
     }
 }
 
-pub struct ParticipantContextConfigApi<'a>(&'a EdcConnectorClientInternal);
+pub struct ParticipantContextConfigApi<'a> {
+    client: &'a EdcConnectorClientInternal,
+    version: EdcConnectorApiVersion,
+}
 
 impl<'a> ParticipantContextConfigApi<'a> {
-    pub(crate) fn new(client: &'a EdcConnectorClientInternal) -> ParticipantContextConfigApi<'a> {
-        ParticipantContextConfigApi(client)
+    pub(crate) fn new(
+        client: &'a EdcConnectorClientInternal,
+        version: EdcConnectorApiVersion,
+    ) -> ParticipantContextConfigApi<'a> {
+        ParticipantContextConfigApi { client, version }
     }
 
     pub async fn save(
@@ -36,10 +55,13 @@ impl<'a> ParticipantContextConfigApi<'a> {
         participant_context_id: &str,
         cfg: &ParticipantContextConfig,
     ) -> EdcResult<()> {
-        let url = self.0.path_for_target(
+        let url = self.client.path_for_target(
             ApiTarget::Admin,
-            &["participants", participant_context_id, "config"],
+            self.version,
+            &[PARTICIPANTS_PATH, participant_context_id, "config"],
         );
-        self.0.put_no_response(url, &self.0.context_for(cfg)).await
+        self.client
+            .put_no_response(url, &self.client.context_for(self.version, cfg))
+            .await
     }
 }

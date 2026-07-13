@@ -8,29 +8,30 @@ mod transfer_processes {
                 data_address::DataAddress,
                 transfer_process::{TransferProcessState, TransferRequest},
             },
-            Error, ManagementApiError, ManagementApiErrorDetailKind,
+            EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
         };
         use reqwest::StatusCode;
         use rstest::rstest;
         use uuid::Uuid;
 
         use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_v4_2025, wait_for_transfer_state, ClientParams,
+            consumer, consumer_virtual_edc, provider, provider_2025, wait_for_transfer_state,
+            ClientParams,
         };
         use crate::common::{seed_contract_agreement, setup_client};
 
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_v4_2025())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(consumer_virtual_edc(), provider_2025(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
         async fn should_initiate_a_transfer_process(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (agreement_id, _, _) =
                 seed_contract_agreement(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
@@ -44,7 +45,7 @@ mod transfer_processes {
                 .build();
 
             let response = consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .initiate(&request)
                 .await
                 .unwrap();
@@ -55,14 +56,15 @@ mod transfer_processes {
         }
 
         #[rstest]
-        #[case(consumer_v3())]
-        #[case(consumer_v4())]
-        #[case(consumer_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_2025(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
         async fn should_fail_to_initiate_a_transfer_process_with_wrong_contract(
             #[case] consumer_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let consumer = setup_client(consumer_cfg.clone());
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let request = TransferRequest::builder()
                 .counter_party_address(consumer_cfg.protocol_address)
@@ -72,7 +74,10 @@ mod transfer_processes {
                 .destination(DataAddress::builder().kind("HttpProxy").build().unwrap())
                 .build();
 
-            let response = consumer.transfer_processes().initiate(&request).await;
+            let response = consumer
+                .transfer_processes(version)
+                .initiate(&request)
+                .await;
 
             assert!(matches!(
                 response,
@@ -85,31 +90,31 @@ mod transfer_processes {
     }
 
     mod get {
-
+        use crate::common::{
+            consumer, consumer_virtual_edc, provider, provider_2025, wait_for_transfer_state,
+            ClientParams,
+        };
+        use crate::common::{seed_contract_agreement, setup_client};
         use edc_connector_client::types::{
             callback_address::CallbackAddress,
             data_address::DataAddress,
             transfer_process::{TransferProcessKind, TransferProcessState, TransferRequest},
         };
+        use edc_connector_client::EdcConnectorApiVersion;
         use rstest::rstest;
 
-        use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_v4_2025, wait_for_transfer_state, ClientParams,
-        };
-        use crate::common::{seed_contract_agreement, setup_client};
-
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_v4_2025())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(consumer_virtual_edc(), provider_2025(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
         async fn should_get_a_transfer_process(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (agreement_id, _, asset_id) =
                 seed_contract_agreement(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
@@ -129,7 +134,7 @@ mod transfer_processes {
                 .build();
 
             let response = consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .initiate(&request)
                 .await
                 .unwrap();
@@ -139,7 +144,7 @@ mod transfer_processes {
             wait_for_transfer_state(&consumer, response.id(), TransferProcessState::Started).await;
 
             let tp = consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .get(response.id())
                 .await
                 .unwrap();
@@ -163,30 +168,30 @@ mod transfer_processes {
     }
 
     mod query {
+        use crate::common::{
+            consumer, consumer_virtual_edc, provider, provider_2025, seed_contract_agreement,
+            setup_client, wait_for_transfer_state, ClientParams,
+        };
         use edc_connector_client::types::{
             data_address::DataAddress,
             query::Query,
             transfer_process::{TransferProcessState, TransferRequest},
         };
+        use edc_connector_client::EdcConnectorApiVersion;
         use rstest::rstest;
 
-        use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_v4_2025, seed_contract_agreement, setup_client, wait_for_transfer_state,
-            ClientParams,
-        };
-
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_v4_2025())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(consumer_virtual_edc(), provider_2025(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
         async fn should_query_transfer_processes(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (agreement_id, _, asset_id) =
                 seed_contract_agreement(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
@@ -200,7 +205,7 @@ mod transfer_processes {
                 .build();
 
             let response = consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .initiate(&request)
                 .await
                 .unwrap();
@@ -210,7 +215,7 @@ mod transfer_processes {
             wait_for_transfer_state(&consumer, response.id(), TransferProcessState::Started).await;
 
             let processes = consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .query(Query::builder().filter("assetId", "=", asset_id).build())
                 .await
                 .unwrap();
@@ -220,30 +225,29 @@ mod transfer_processes {
     }
 
     mod terminate {
-
+        use crate::common::{
+            consumer, consumer_virtual_edc, provider, provider_2025, seed_contract_agreement,
+            setup_client, wait_for_transfer_state, ClientParams,
+        };
         use edc_connector_client::types::{
             data_address::DataAddress,
             transfer_process::{TransferProcessState, TransferRequest},
         };
+        use edc_connector_client::EdcConnectorApiVersion;
         use rstest::rstest;
 
-        use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_v4_2025, seed_contract_agreement, setup_client, wait_for_transfer_state,
-            ClientParams,
-        };
-
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_v4_2025())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(consumer_virtual_edc(), provider_2025(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
         async fn should_terminate_transfer_processes(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (agreement_id, _, _) =
                 seed_contract_agreement(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
@@ -257,7 +261,7 @@ mod transfer_processes {
                 .build();
 
             let response = consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .initiate(&request)
                 .await
                 .unwrap();
@@ -267,7 +271,7 @@ mod transfer_processes {
             wait_for_transfer_state(&consumer, response.id(), TransferProcessState::Started).await;
 
             consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .terminate(response.id(), "reason")
                 .await
                 .unwrap();
@@ -278,28 +282,28 @@ mod transfer_processes {
     }
 
     mod suspend {
-
+        use crate::common::{
+            consumer, provider, seed_contract_agreement, setup_client, wait_for_transfer_state,
+            ClientParams,
+        };
         use edc_connector_client::types::{
             data_address::DataAddress,
             transfer_process::{TransferProcessState, TransferRequest},
         };
+        use edc_connector_client::EdcConnectorApiVersion;
         use rstest::rstest;
 
-        use crate::common::{
-            consumer_v3, consumer_v4, provider_v3, provider_v4, seed_contract_agreement,
-            setup_client, wait_for_transfer_state, ClientParams,
-        };
-
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
         async fn should_suspend_and_resume_transfer_processes(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (agreement_id, _, _) =
                 seed_contract_agreement(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
@@ -313,7 +317,7 @@ mod transfer_processes {
                 .build();
 
             let response = consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .initiate(&request)
                 .await
                 .unwrap();
@@ -323,7 +327,7 @@ mod transfer_processes {
             wait_for_transfer_state(&consumer, response.id(), TransferProcessState::Started).await;
 
             consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .suspend(response.id(), "reason")
                 .await
                 .unwrap();
@@ -332,7 +336,7 @@ mod transfer_processes {
                 .await;
 
             consumer
-                .transfer_processes()
+                .transfer_processes(version)
                 .resume(response.id())
                 .await
                 .unwrap();
