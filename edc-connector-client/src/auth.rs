@@ -9,6 +9,7 @@ pub enum Auth {
     NoAuth,
     ApiToken(String),
     OAuth2(OAuth2),
+    BearerToken(String),
 }
 
 impl Auth {
@@ -18,5 +19,9 @@ impl Auth {
 
     pub fn oauth(cfg: OAuth2Config) -> EdcResult<Auth> {
         Ok(Auth::OAuth2(OAuth2::init(cfg)?))
+    }
+
+    pub fn bearer_token(token: impl Into<String>) -> Auth {
+        Auth::BearerToken(token.into())
     }
 }

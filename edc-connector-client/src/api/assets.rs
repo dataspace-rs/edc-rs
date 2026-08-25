@@ -6,47 +6,62 @@ use crate::{
         query::Query,
         response::IdResponse,
     },
-    EdcResult,
+    EdcConnectorApiVersion, EdcResult,
 };
 
-pub struct AssetApi<'a>(&'a EdcConnectorClientInternal);
+const ASSETS_PATH: &str = "assets";
+
+pub struct AssetApi<'a> {
+    client: &'a EdcConnectorClientInternal,
+    version: EdcConnectorApiVersion,
+}
 
 impl<'a> AssetApi<'a> {
-    pub(crate) fn new(client: &'a EdcConnectorClientInternal) -> AssetApi<'a> {
-        AssetApi(client)
+    pub(crate) fn new(
+        client: &'a EdcConnectorClientInternal,
+        version: EdcConnectorApiVersion,
+    ) -> AssetApi<'a> {
+        AssetApi { client, version }
     }
 
     pub async fn create(&self, asset: &NewAsset) -> EdcResult<IdResponse<String>> {
-        let url = self.0.path_for(&["assets"]);
-        self.0
-            .post::<_, WithContext<IdResponse<String>>>(url, &self.0.context_for(asset))
+        let url = self.client.path_for(self.version, &[ASSETS_PATH]);
+        self.client
+            .post::<_, WithContext<IdResponse<String>>>(
+                url,
+                &self.client.context_for(self.version, asset),
+            )
             .await
             .map(|ctx| ctx.inner)
     }
 
     pub async fn get(&self, id: &str) -> EdcResult<Asset> {
-        let url = self.0.path_for(&["assets", id]);
-        self.0
+        let url = self.client.path_for(self.version, &[ASSETS_PATH, id]);
+        self.client
             .get::<WithContext<Asset>>(url)
             .await
             .map(|ctx| ctx.inner)
     }
 
     pub async fn update(&self, asset: &Asset) -> EdcResult<()> {
-        let url = self.0.path_for(&["assets"]);
-        self.0.put(url, &self.0.context_for(asset)).await
+        let url = self.client.path_for(self.version, &[ASSETS_PATH]);
+        self.client
+            .put(url, &self.client.context_for(self.version, asset))
+            .await
     }
 
     pub async fn query(&self, query: Query) -> EdcResult<Vec<Asset>> {
-        let url = self.0.path_for(&["assets", "request"]);
-        self.0
-            .post::<_, Vec<WithContext<Asset>>>(url, &self.0.context_for(&query))
+        let url = self
+            .client
+            .path_for(self.version, &[ASSETS_PATH, "request"]);
+        self.client
+            .post::<_, Vec<WithContext<Asset>>>(url, &self.client.context_for(self.version, &query))
             .await
             .map(|results| results.into_iter().map(|ctx| ctx.inner).collect())
     }
 
     pub async fn delete(&self, id: &str) -> EdcResult<()> {
-        let url = self.0.path_for(&["assets", id]);
-        self.0.del(url).await
+        let url = self.client.path_for(self.version, &[ASSETS_PATH, id]);
+        self.client.del(url).await
     }
 }

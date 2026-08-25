@@ -1,4 +1,4 @@
-use edc_connector_client::{Auth, EdcConnectorClient};
+use edc_connector_client::{Auth, EdcConnectorApiVersion, EdcConnectorClient};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -7,7 +7,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_auth(Auth::api_token("password"))
         .build()?;
 
-    let asset = client.assets().get("1").await?;
+    let asset = client.assets(EdcConnectorApiVersion::V4).get("1").await?;
 
     println!("Got {:?}", asset);
 

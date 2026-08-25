@@ -230,9 +230,14 @@ impl<S: permission_builder::State> PermissionBuilder<S> {
 pub struct Obligation {
     #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
-    #[serde(rename = "constraint", alias = "odrl:constraint", default)]
+    #[serde(
+        rename = "constraint",
+        alias = "odrl:constraint",
+        alias = "http://www.w3.org/ns/odrl/2/constraint",
+        default
+    )]
     constraints: Vec<Constraint>,
-    #[serde(alias = "odrl:action")]
+    #[serde(alias = "odrl:action", alias = "http://www.w3.org/ns/odrl/2/action")]
     action: Action,
 }
 
@@ -263,9 +268,14 @@ impl<S: obligation_builder::State> ObligationBuilder<S> {
 pub struct Prohibition {
     #[builder(field)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
-    #[serde(rename = "constraint", alias = "odrl:constraint", default)]
+    #[serde(
+        rename = "constraint",
+        alias = "odrl:constraint",
+        alias = "http://www.w3.org/ns/odrl/2/constraint",
+        default
+    )]
     constraints: Vec<Constraint>,
-    #[serde(alias = "odrl:action")]
+    #[serde(alias = "odrl:action", alias = "http://www.w3.org/ns/odrl/2/action")]
     action: Action,
 }
 

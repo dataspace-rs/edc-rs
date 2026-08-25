@@ -3,6 +3,7 @@
 use std::{collections::HashMap, future::Future, thread, time::Duration};
 
 use bon::Builder;
+use edc_connector_client::types::ExtraTokenFields;
 use edc_connector_client::{
     types::{
         asset::NewAsset,
@@ -18,6 +19,7 @@ use edc_connector_client::{
     },
     Auth, EdcConnectorApiVersion, EdcConnectorClient, OAuth2Config, EDC_NAMESPACE,
 };
+use serde::Deserialize;
 use tokio::time::sleep;
 use uuid::Uuid;
 
@@ -27,11 +29,14 @@ pub const PROVIDER_ID: &str = "provider";
 pub const CONSUMER_PROTOCOL: &str = "http://provider-connector:9194/protocol/2025-1";
 pub const CONSUMER_ID: &str = "consumer";
 
+#[derive(Deserialize, Debug, Clone)]
+pub struct CatalogExtraFields {}
+
+impl ExtraTokenFields for CatalogExtraFields {}
+
 #[derive(Builder, Clone)]
 pub struct ClientParams {
     pub management_url: String,
-    #[builder(default = EdcConnectorApiVersion::V3)]
-    pub version: EdcConnectorApiVersion,
     #[builder(into)]
     pub participant_context: Option<String>,
     pub auth: Auth,
@@ -43,53 +48,30 @@ pub struct ClientParams {
     pub protocol: Protocol,
 }
 
-pub fn provider_v3() -> ClientParams {
+pub fn provider() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:29193/management".to_string())
-        .version(EdcConnectorApiVersion::V3)
         .auth(Auth::ApiToken("123456".to_string()))
         .protocol_address(PROVIDER_PROTOCOL)
         .protocol_id(PROVIDER_ID)
         .build()
 }
 
-pub fn consumer_v3() -> ClientParams {
+pub fn consumer() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:19193/management".to_string())
-        .version(EdcConnectorApiVersion::V3)
         .auth(Auth::ApiToken("123456".to_string()))
         .protocol_address(CONSUMER_PROTOCOL)
         .protocol_id(CONSUMER_ID)
         .build()
 }
 
-pub fn provider_v4() -> ClientParams {
+pub fn provider_2025() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:29193/management".to_string())
-        .version(EdcConnectorApiVersion::V4)
-        .auth(Auth::ApiToken("123456".to_string()))
-        .protocol_address(PROVIDER_PROTOCOL)
-        .protocol_id(PROVIDER_ID)
-        .build()
-}
-
-pub fn provider_v4_2025() -> ClientParams {
-    ClientParams::builder()
-        .management_url("http://localhost:29193/management".to_string())
-        .version(EdcConnectorApiVersion::V4)
         .auth(Auth::ApiToken("123456".to_string()))
         .protocol_address("http://provider-connector:9194/protocol/2025-1")
         .protocol_id(PROVIDER_ID)
-        .build()
-}
-
-pub fn consumer_v4() -> ClientParams {
-    ClientParams::builder()
-        .management_url("http://localhost:19193/management".to_string())
-        .version(EdcConnectorApiVersion::V4)
-        .auth(Auth::ApiToken("123456".to_string()))
-        .protocol_address(CONSUMER_PROTOCOL)
-        .protocol_id(CONSUMER_ID)
         .build()
 }
 
@@ -97,7 +79,6 @@ pub fn consumer_v4() -> ClientParams {
 pub fn consumer_virtual_edc() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:39193/api/mgmt".to_string())
-        .version(EdcConnectorApiVersion::V4)
         .participant_context("consumer")
         .auth(
             Auth::oauth(
@@ -119,7 +100,6 @@ pub fn consumer_virtual_edc() -> ClientParams {
 pub fn provider_virtual_edc() -> ClientParams {
     ClientParams::builder()
         .management_url("http://localhost:39193/api/mgmt".to_string())
-        .version(EdcConnectorApiVersion::V4)
         .participant_context("provider")
         .auth(
             Auth::oauth(
@@ -147,7 +127,7 @@ pub fn setup_provider_client_with_auth(auth: Auth) -> EdcConnectorClient {
 }
 
 #[allow(clippy::unwrap_used)]
-pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
+pub fn setup_client(params: ClientParams, version: EdcConnectorApiVersion) -> EdcConnectorClient {
     if let Some(participant_context) = params.participant_context.clone() {
         let auth = OAuth2Config::builder()
             .client_id("provisioner")
@@ -158,7 +138,6 @@ pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
         let client = EdcConnectorClient::builder()
             .management_url(&params.management_url)
             .with_auth(Auth::oauth(auth).unwrap())
-            .version(EdcConnectorApiVersion::V4)
             .participant_context(participant_context.clone())
             .build()
             .unwrap();
@@ -170,7 +149,7 @@ pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
                 .unwrap()
                 .block_on(async {
                     let _ = client
-                        .participants()
+                        .participants(version)
                         .create(
                             &NewParticipantContext::builder()
                                 .id(&participant_context)
@@ -187,7 +166,7 @@ pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
                     );
 
                     client
-                        .participant_configs()
+                        .participant_configs(version)
                         .save(
                             &participant_context,
                             &ParticipantContextConfig::builder().entries(entries).build(),
@@ -203,7 +182,6 @@ pub fn setup_client(params: ClientParams) -> EdcConnectorClient {
     EdcConnectorClient::builder()
         .management_url(&params.management_url)
         .with_auth(Auth::api_token("123456"))
-        .version(params.version)
         .with_auth(params.auth)
         .maybe_participant_context(params.participant_context)
         .build()
@@ -223,7 +201,11 @@ pub async fn seed(client: &EdcConnectorClient) -> (String, String, String) {
         )
         .build();
 
-    let asset_response = client.assets().create(&asset).await.unwrap();
+    let asset_response = client
+        .assets(EdcConnectorApiVersion::V4)
+        .create(&asset)
+        .await
+        .unwrap();
 
     let policy_definition = NewPolicyDefinition::builder()
         .id(Uuid::new_v4().to_string().as_str())
@@ -234,7 +216,11 @@ pub async fn seed(client: &EdcConnectorClient) -> (String, String, String) {
         )
         .build();
 
-    let policy_response = client.policies().create(&policy_definition).await.unwrap();
+    let policy_response = client
+        .policies(EdcConnectorApiVersion::V4)
+        .create(&policy_definition)
+        .await
+        .unwrap();
 
     let contract_definition = NewContractDefinition::builder()
         .id(Uuid::new_v4().to_string().as_str())
@@ -248,7 +234,7 @@ pub async fn seed(client: &EdcConnectorClient) -> (String, String, String) {
         .build();
 
     let definition_response = client
-        .contract_definitions()
+        .contract_definitions(EdcConnectorApiVersion::V4)
         .create(&contract_definition)
         .await
         .unwrap();
@@ -277,8 +263,8 @@ pub async fn seed_contract_negotiation(
         .build();
 
     let dataset = consumer
-        .catalogue()
-        .dataset(&dataset_request)
+        .catalogue(EdcConnectorApiVersion::V4)
+        .dataset::<CatalogExtraFields>(&dataset_request)
         .await
         .unwrap();
 
@@ -300,7 +286,7 @@ pub async fn seed_contract_negotiation(
         .build();
 
     let response = consumer
-        .contract_negotiations()
+        .contract_negotiations(EdcConnectorApiVersion::V4)
         .initiate(&request)
         .await
         .unwrap();
@@ -326,7 +312,7 @@ pub async fn seed_contract_agreement(
     .await;
 
     let agreement_id = consumer
-        .contract_negotiations()
+        .contract_negotiations(EdcConnectorApiVersion::V4)
         .get(&contract_negotiation_id)
         .await
         .map(|cn| cn.contract_agreement_id().cloned())
@@ -334,7 +320,7 @@ pub async fn seed_contract_agreement(
         .unwrap();
 
     let contract_agreement = consumer
-        .contract_agreements()
+        .contract_agreements(EdcConnectorApiVersion::V4)
         .get(&agreement_id)
         .await
         .unwrap();
@@ -364,7 +350,7 @@ pub async fn seed_transfer_process(
     .await;
 
     let agreement_id = consumer
-        .contract_negotiations()
+        .contract_negotiations(EdcConnectorApiVersion::V4)
         .get(&contract_negotiation_id)
         .await
         .map(|cn| cn.contract_agreement_id().cloned())
@@ -372,7 +358,7 @@ pub async fn seed_transfer_process(
         .unwrap();
 
     let contract_agreement = consumer
-        .contract_agreements()
+        .contract_agreements(EdcConnectorApiVersion::V4)
         .get(&agreement_id)
         .await
         .unwrap();
@@ -385,7 +371,7 @@ pub async fn seed_transfer_process(
         .build();
 
     let response = consumer
-        .transfer_processes()
+        .transfer_processes(EdcConnectorApiVersion::V4)
         .initiate(&request)
         .await
         .unwrap();
@@ -408,7 +394,7 @@ pub async fn wait_for_negotiation_state(
         let i_state = state.clone();
         async {
             client
-                .contract_negotiations()
+                .contract_negotiations(EdcConnectorApiVersion::V4)
                 .get_state(id)
                 .await
                 .map_err(|err| err.to_string())
@@ -435,7 +421,7 @@ pub async fn wait_for_transfer_state(
         let i_state = state.clone();
         async {
             client
-                .transfer_processes()
+                .transfer_processes(EdcConnectorApiVersion::V4)
                 .get_state(id)
                 .await
                 .map_err(|err| err.to_string())

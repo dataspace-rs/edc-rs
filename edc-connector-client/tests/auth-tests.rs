@@ -2,7 +2,9 @@ mod common;
 
 mod auth {
     use edc_connector_client::types::{asset::NewAsset, data_address::DataAddress};
-    use edc_connector_client::{Error, ManagementApiError, ManagementApiErrorDetailKind};
+    use edc_connector_client::{
+        EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
+    };
     use reqwest::StatusCode;
     use uuid::Uuid;
 
@@ -20,7 +22,10 @@ mod auth {
             .data_address(DataAddress::builder().kind("type").build().unwrap())
             .build();
 
-        let response = client.assets().create(&asset).await;
+        let response = client
+            .assets(EdcConnectorApiVersion::V4)
+            .create(&asset)
+            .await;
 
         assert!(matches!(
             response,

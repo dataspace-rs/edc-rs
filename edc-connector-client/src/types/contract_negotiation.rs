@@ -19,7 +19,8 @@ pub struct ContractRequest {
     #[builder(default)]
     protocol: Protocol,
     #[builder(into)]
-    counter_party_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    counter_party_id: Option<String>,
     #[builder(into)]
     counter_party_address: String,
     policy: Policy,
@@ -45,7 +46,7 @@ pub struct ContractNegotiation {
     private_properties: Properties,
     state: ContractNegotiationState,
     contract_agreement_id: Option<String>,
-    counter_party_id: String,
+    counter_party_id: Option<String>,
     counter_party_address: String,
     protocol: String,
     created_at: i64,
@@ -53,6 +54,7 @@ pub struct ContractNegotiation {
     callback_addresses: Vec<CallbackAddress>,
     #[serde(rename = "type")]
     kind: ContractNegotiationKind,
+    error_detail: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone, PartialEq)]
@@ -128,7 +130,7 @@ impl ContractNegotiation {
         self.contract_agreement_id.as_ref()
     }
 
-    pub fn counter_party_id(&self) -> &str {
+    pub fn counter_party_id(&self) -> &Option<String> {
         &self.counter_party_id
     }
 
@@ -150,5 +152,9 @@ impl ContractNegotiation {
 
     pub fn protocol(&self) -> &str {
         &self.protocol
+    }
+
+    pub fn error_detail(&self) -> Option<&str> {
+        self.error_detail.as_deref()
     }
 }

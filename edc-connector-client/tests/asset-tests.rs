@@ -6,23 +6,24 @@ mod assets {
     mod create {
         use edc_connector_client::{
             types::{asset::NewAsset, data_address::DataAddress},
-            Error, ManagementApiError, ManagementApiErrorDetailKind,
+            EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
         };
         use reqwest::StatusCode;
         use rstest::rstest;
         use uuid::Uuid;
 
-        use crate::common::{
-            provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-        };
+        use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_create_an_asset(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_create_an_asset(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
 
             let id = Uuid::new_v4().to_string();
 
@@ -32,19 +33,22 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            let response = client.assets().create(&asset).await.unwrap();
+            let response = client.assets(version).create(&asset).await.unwrap();
 
             assert_eq!(&id, response.id());
             assert!(response.created_at() > 0);
         }
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_failt_to_create_an_asset_when_existing(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_failt_to_create_an_asset_when_existing(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
 
             let id = Uuid::new_v4().to_string();
 
@@ -54,12 +58,12 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            let response = client.assets().create(&asset).await.unwrap();
+            let response = client.assets(version).create(&asset).await.unwrap();
 
             assert_eq!(&id, response.id());
             assert!(response.created_at() > 0);
 
-            let response = client.assets().create(&asset).await;
+            let response = client.assets(version).create(&asset).await;
 
             assert!(matches!(
                 response,
@@ -74,23 +78,24 @@ mod assets {
     mod delete {
         use edc_connector_client::{
             types::{asset::NewAsset, data_address::DataAddress},
-            Error, ManagementApiError, ManagementApiErrorDetailKind,
+            EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
         };
         use reqwest::StatusCode;
         use rstest::rstest;
         use uuid::Uuid;
 
-        use crate::common::{
-            provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-        };
+        use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_delete_an_asset(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_delete_an_asset(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
             let new_asset = NewAsset::builder()
                 .id(&id)
@@ -98,23 +103,26 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            let asset = client.assets().create(&new_asset).await.unwrap();
+            let asset = client.assets(version).create(&new_asset).await.unwrap();
 
-            let response = client.assets().delete(asset.id()).await;
+            let response = client.assets(version).delete(asset.id()).await;
 
             assert!(response.is_ok());
         }
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_fail_to_delete_an_asset_when_not_existing(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_fail_to_delete_an_asset_when_not_existing(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
 
-            let response = client.assets().delete(&id).await;
+            let response = client.assets(version).delete(&id).await;
 
             assert!(matches!(
                 response,
@@ -129,23 +137,25 @@ mod assets {
     mod get {
         use edc_connector_client::{
             types::{asset::NewAsset, data_address::DataAddress},
-            ConversionError, Error, ManagementApiError, ManagementApiErrorDetailKind,
+            ConversionError, EdcConnectorApiVersion, Error, ManagementApiError,
+            ManagementApiErrorDetailKind,
         };
         use reqwest::StatusCode;
         use rstest::rstest;
         use uuid::Uuid;
 
-        use crate::common::{
-            provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-        };
+        use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_get_an_asset(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_get_an_asset(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
             let new_asset = NewAsset::builder()
                 .id(&id)
@@ -153,20 +163,23 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            let asset = client.assets().create(&new_asset).await.unwrap();
+            let asset = client.assets(version).create(&new_asset).await.unwrap();
 
-            let asset = client.assets().get(asset.id()).await.unwrap();
+            let asset = client.assets(version).get(asset.id()).await.unwrap();
 
             assert_eq!("bar", asset.property::<String>("foo").unwrap().unwrap())
         }
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_get_an_asset_with_array_property(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_get_an_asset_with_array_property(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
 
             let id = Uuid::new_v4().to_string();
 
@@ -177,9 +190,9 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            let asset = client.assets().create(&asset).await.unwrap();
+            let asset = client.assets(version).create(&asset).await.unwrap();
 
-            let asset = client.assets().get(asset.id()).await.unwrap();
+            let asset = client.assets(version).get(asset.id()).await.unwrap();
 
             assert_eq!(
                 vec!["bar"],
@@ -199,15 +212,18 @@ mod assets {
         }
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_fail_to_get_an_asset_when_not_existing(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_fail_to_get_an_asset_when_not_existing(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
 
-            let response = client.assets().get(&id).await;
+            let response = client.assets(version).get(&id).await;
 
             assert!(matches!(
                 response,
@@ -225,23 +241,24 @@ mod assets {
                 asset::{Asset, NewAsset},
                 data_address::DataAddress,
             },
-            Error, ManagementApiError, ManagementApiErrorDetailKind,
+            EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
         };
         use reqwest::StatusCode;
         use rstest::rstest;
         use uuid::Uuid;
 
-        use crate::common::{
-            provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-        };
+        use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_update_an_asset(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_update_an_asset(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
             let new_asset = NewAsset::builder()
                 .id(&id)
@@ -249,7 +266,7 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            client.assets().create(&new_asset).await.unwrap();
+            client.assets(version).create(&new_asset).await.unwrap();
 
             let updated_asset = Asset::builder()
                 .id(&id)
@@ -257,20 +274,23 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            client.assets().update(&updated_asset).await.unwrap();
+            client.assets(version).update(&updated_asset).await.unwrap();
 
-            let asset = client.assets().get(&id).await.unwrap();
+            let asset = client.assets(version).get(&id).await.unwrap();
 
             assert_eq!("bar2", asset.property::<String>("foo").unwrap().unwrap())
         }
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_fail_to_update_an_asset_when_not_existing(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_fail_to_update_an_asset_when_not_existing(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
 
             let updated_asset = Asset::builder()
@@ -279,7 +299,7 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            let response = client.assets().update(&updated_asset).await;
+            let response = client.assets(version).update(&updated_asset).await;
 
             assert!(matches!(
                 response,
@@ -298,22 +318,23 @@ mod assets {
                 data_address::DataAddress,
                 query::{Query, SortOrder},
             },
-            EDC_NAMESPACE,
+            EdcConnectorApiVersion, EDC_NAMESPACE,
         };
         use rstest::rstest;
         use uuid::Uuid;
 
-        use crate::common::{
-            provider_v3, provider_v4, provider_virtual_edc, setup_client, ClientParams,
-        };
+        use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_query_an_asset(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_query_an_asset(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
             let new_asset = NewAsset::builder()
                 .id(&id)
@@ -321,10 +342,10 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            client.assets().create(&new_asset).await.unwrap();
+            client.assets(version).create(&new_asset).await.unwrap();
 
             let assets = client
-                .assets()
+                .assets(version)
                 .query(
                     Query::builder()
                         .filter(&format!("{}{}", EDC_NAMESPACE, "id"), "=", &id)
@@ -348,12 +369,15 @@ mod assets {
         }
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_query_an_asset_with_sort(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_query_an_asset_with_sort(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
             let id_1 = Uuid::new_v4().to_string();
             let group = Uuid::new_v4().to_string();
@@ -371,15 +395,15 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            client.assets().create(&new_asset).await.unwrap();
-            client.assets().create(&new_asset_2).await.unwrap();
+            client.assets(version).create(&new_asset).await.unwrap();
+            client.assets(version).create(&new_asset_2).await.unwrap();
 
             let query = Query::builder()
                 .filter(&format!("{}{}", EDC_NAMESPACE, "group"), "=", &group)
                 .sort(&format!("{}{}", EDC_NAMESPACE, "foo"), SortOrder::Desc)
                 .build();
 
-            let assets = client.assets().query(query).await.unwrap();
+            let assets = client.assets(version).query(query).await.unwrap();
 
             assert_eq!(2, assets.len());
 
@@ -390,12 +414,15 @@ mod assets {
         }
 
         #[rstest]
-        #[case(provider_v3())]
-        #[case(provider_v4())]
-        #[case(provider_virtual_edc())]
+        #[case(provider(), EdcConnectorApiVersion::V3)]
+        #[case(provider(), EdcConnectorApiVersion::V4)]
+        #[case(provider_virtual_edc(), EdcConnectorApiVersion::V4)]
         #[tokio::test]
-        async fn should_query_an_asset_with_limit(#[case] provider: ClientParams) {
-            let client = setup_client(provider);
+        async fn should_query_an_asset_with_limit(
+            #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let client = setup_client(provider, version);
             let id = Uuid::new_v4().to_string();
             let id_1 = Uuid::new_v4().to_string();
             let group = Uuid::new_v4().to_string();
@@ -413,8 +440,8 @@ mod assets {
                 .data_address(DataAddress::builder().kind("type").build().unwrap())
                 .build();
 
-            client.assets().create(&new_asset).await.unwrap();
-            client.assets().create(&new_asset_2).await.unwrap();
+            client.assets(version).create(&new_asset).await.unwrap();
+            client.assets(version).create(&new_asset_2).await.unwrap();
 
             let query = Query::builder()
                 .filter(&format!("{}{}", EDC_NAMESPACE, "group"), "=", &group)
@@ -422,7 +449,7 @@ mod assets {
                 .limit(1)
                 .build();
 
-            let assets = client.assets().query(query).await.unwrap();
+            let assets = client.assets(version).query(query).await.unwrap();
 
             assert_eq!(1, assets.len());
 
@@ -438,7 +465,7 @@ mod assets {
                 .limit(1)
                 .build();
 
-            let assets = client.assets().query(query).await.unwrap();
+            let assets = client.assets(version).query(query).await.unwrap();
 
             assert_eq!(1, assets.len());
 

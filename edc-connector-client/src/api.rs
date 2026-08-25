@@ -1,5 +1,6 @@
 mod assets;
 mod catalog;
+mod celexpressions;
 mod contract_agreement;
 mod contract_definitions;
 mod contract_negotiations;
@@ -12,6 +13,7 @@ mod transfer_process;
 
 pub use assets::AssetApi;
 pub use catalog::CatalogApi;
+pub use celexpressions::CommonExpressionLanguageApi;
 pub use contract_agreement::ContractAgreementApi;
 pub use contract_definitions::ContractDefinitionApi;
 pub use contract_negotiations::ContractNegotiationApi;

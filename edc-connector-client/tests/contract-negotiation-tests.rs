@@ -9,30 +9,35 @@ mod contract_negotiations {
                 contract_negotiation::ContractRequest,
                 policy::{Action, Permission, Policy, PolicyKind, Target},
             },
-            Error, ManagementApiError, ManagementApiErrorDetailKind,
+            EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
         };
         use reqwest::StatusCode;
         use rstest::rstest;
 
         use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed, setup_client, ClientParams, PROVIDER_ID,
+            consumer, consumer_virtual_edc, provider, provider_virtual_edc, seed, setup_client,
+            CatalogExtraFields, ClientParams, PROVIDER_ID,
         };
 
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_virtual_edc())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V4
+        )]
         #[tokio::test]
         async fn should_initiate_a_contract_negotiation(
             #[case] consumer: ClientParams,
             #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
             let provider_addr = provider.protocol_address.clone();
             let provider_id = provider.protocol_id.clone();
             let protocol = consumer.protocol.clone();
-            let provider = setup_client(provider);
-            let consumer = setup_client(consumer);
+            let provider = setup_client(provider, version);
+            let consumer = setup_client(consumer, version);
 
             let (asset_id, _, _) = seed(&provider).await;
 
@@ -44,8 +49,8 @@ mod contract_negotiations {
                 .build();
 
             let dataset = consumer
-                .catalogue()
-                .dataset(&dataset_request)
+                .catalogue(version)
+                .dataset::<CatalogExtraFields>(&dataset_request)
                 .await
                 .unwrap();
 
@@ -67,7 +72,7 @@ mod contract_negotiations {
                 .build();
 
             let response = consumer
-                .contract_negotiations()
+                .contract_negotiations(version)
                 .initiate(&request)
                 .await
                 .unwrap();
@@ -76,19 +81,24 @@ mod contract_negotiations {
         }
 
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_virtual_edc())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V4
+        )]
         #[tokio::test]
         async fn should_fail_to_initiate_a_contact_negotiation_with_wrong_policy(
             #[case] consumer: ClientParams,
             #[case] provider: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
             let provider_addr = provider.protocol_address.clone();
             let provider_id = provider.protocol_id.clone();
             let protocol = consumer.protocol.clone();
-            let provider = setup_client(provider);
-            let consumer = setup_client(consumer);
+            let provider = setup_client(provider, version);
+            let consumer = setup_client(consumer, version);
 
             let (asset_id, _, _) = seed(&provider).await;
 
@@ -100,8 +110,8 @@ mod contract_negotiations {
                 .build();
 
             let dataset = consumer
-                .catalogue()
-                .dataset(&dataset_request)
+                .catalogue(version)
+                .dataset::<CatalogExtraFields>(&dataset_request)
                 .await
                 .unwrap();
 
@@ -120,7 +130,10 @@ mod contract_negotiations {
                 )
                 .build();
 
-            let response = consumer.contract_negotiations().initiate(&request).await;
+            let response = consumer
+                .contract_negotiations(version)
+                .initiate(&request)
+                .await;
 
             assert!(matches!(
                 response,
@@ -133,34 +146,38 @@ mod contract_negotiations {
     }
 
     mod get {
-
+        use crate::common::{
+            consumer, consumer_virtual_edc, provider, provider_virtual_edc,
+            seed_contract_negotiation, setup_client, ClientParams,
+        };
         use edc_connector_client::types::contract_negotiation::{
             ContractNegotiationKind, ContractNegotiationState,
         };
+        use edc_connector_client::EdcConnectorApiVersion;
         use rstest::rstest;
 
-        use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed_contract_negotiation, setup_client, ClientParams,
-        };
-
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_virtual_edc())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V4
+        )]
         #[tokio::test]
         async fn should_get_a_contract_negotiation(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (contract_negotiation_id, _) =
                 seed_contract_negotiation(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
 
             let cn = consumer
-                .contract_negotiations()
+                .contract_negotiations(version)
                 .get(&contract_negotiation_id)
                 .await
                 .unwrap();
@@ -168,27 +185,32 @@ mod contract_negotiations {
             assert_eq!(contract_negotiation_id, cn.id());
             assert_ne!(&ContractNegotiationState::Terminated, cn.state());
             assert_eq!(0, cn.callback_addresses().len());
-            assert_eq!("provider", cn.counter_party_id());
+            assert_eq!(&Some("provider".to_string()), cn.counter_party_id());
             assert_eq!(&ContractNegotiationKind::Consumer, cn.kind());
         }
 
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_virtual_edc())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V4
+        )]
         #[tokio::test]
         async fn should_get_a_state_of_contract_negotiation(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (contract_negotiation_id, _) =
                 seed_contract_negotiation(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
 
             let state_response = consumer
-                .contract_negotiations()
+                .contract_negotiations(version)
                 .get_state(&contract_negotiation_id)
                 .await;
 
@@ -197,31 +219,36 @@ mod contract_negotiations {
     }
 
     mod query {
+        use crate::common::{
+            consumer, consumer_virtual_edc, provider, provider_virtual_edc,
+            seed_contract_negotiation, setup_client, ClientParams,
+        };
         use edc_connector_client::types::query::Query;
+        use edc_connector_client::EdcConnectorApiVersion;
         use rstest::rstest;
 
-        use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed_contract_negotiation, setup_client, ClientParams,
-        };
-
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_virtual_edc())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V4
+        )]
         #[tokio::test]
         async fn should_query_contract_negotiations(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (contract_negotiation_id, _) =
                 seed_contract_negotiation(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
 
             let negotiations = consumer
-                .contract_negotiations()
+                .contract_negotiations(version)
                 .query(
                     Query::builder()
                         .filter("id", "=", contract_negotiation_id)
@@ -235,29 +262,33 @@ mod contract_negotiations {
     }
 
     mod terminate {
-
         use edc_connector_client::{
-            types::contract_negotiation::ContractNegotiationState, Error, ManagementApiError,
+            types::contract_negotiation::ContractNegotiationState, EdcConnectorApiVersion, Error,
+            ManagementApiError,
         };
         use rstest::rstest;
 
         use crate::common::{
-            consumer_v3, consumer_v4, consumer_virtual_edc, provider_v3, provider_v4,
-            provider_virtual_edc, seed_contract_negotiation, setup_client,
-            wait_for_negotiation_state, ClientParams,
+            consumer, consumer_virtual_edc, provider, provider_virtual_edc,
+            seed_contract_negotiation, setup_client, wait_for_negotiation_state, ClientParams,
         };
 
         #[rstest]
-        #[case(consumer_v3(), provider_v3())]
-        #[case(consumer_v4(), provider_v4())]
-        #[case(consumer_virtual_edc(), provider_virtual_edc())]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V3)]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V4
+        )]
         #[tokio::test]
         async fn should_terminate_a_contract_negotiations(
             #[case] consumer_cfg: ClientParams,
             #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
         ) {
-            let provider = setup_client(provider_cfg.clone());
-            let consumer = setup_client(consumer_cfg.clone());
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
 
             let (contract_negotiation_id, _) =
                 seed_contract_negotiation(&consumer, &consumer_cfg, &provider, &provider_cfg).await;
@@ -270,7 +301,7 @@ mod contract_negotiations {
             .await;
 
             let result = consumer
-                .contract_negotiations()
+                .contract_negotiations(version)
                 .terminate(&contract_negotiation_id, "test")
                 .await;
 

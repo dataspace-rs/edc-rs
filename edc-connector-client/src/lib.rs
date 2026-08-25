@@ -12,23 +12,22 @@
 //!
 //! ```rust,no_run
 //!
-//! use edc_connector_client::{EdcConnectorClient, Auth};
+//! use edc_connector_client::{EdcConnectorClient, EdcConnectorApiVersion, Auth};
 //!
 //!
-//!#[tokio::main]
-//!async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
-//!    let client = EdcConnectorClient::builder()
-//!        .management_url("http://myedc")
-//!        .with_auth(Auth::api_token("password"))
-//!        .build()?;
+//!     let client = EdcConnectorClient::builder()
+//!         .management_url("http://myedc")
+//!         .with_auth(Auth::api_token("password"))
+//!         .build()?;
 //!
-//!    let asset = client.assets().get("1").await?;
-//!    println!("Got {:?}", asset);
+//!     let asset = client.assets(EdcConnectorApiVersion::V4).get("1").await?;
+//!     println!("Got {:?}", asset);
 //!
-//!    Ok(())
-//!}
-//!
+//!     Ok(())
+//! }
 
 pub mod api;
 mod auth;

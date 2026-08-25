@@ -1,16 +1,11 @@
+use crate::types::properties::{FromValue, Properties, PropertyValue, ToValue};
+use crate::ConversionError;
 use bon::Builder;
 use serde::{Deserialize, Serialize};
 
-use crate::error::ConversionError;
-
-use super::{
-    data_address::DataAddress,
-    properties::{FromValue, Properties, PropertyValue, ToValue},
-};
-
 #[derive(Debug, Serialize, Deserialize, Clone, Builder)]
 #[serde(rename_all = "camelCase")]
-pub struct Asset {
+pub struct CommonExpressionLanguage {
     #[builder(field)]
     properties: Properties,
     #[builder(field)]
@@ -19,15 +14,18 @@ pub struct Asset {
     #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
-    #[builder(default = "Asset".to_string())]
+    #[builder(default = "CelExpression".to_string())]
     #[serde(rename = "@type")]
     ty: String,
-    data_address: DataAddress,
+    left_operand: String,
+    description: Option<String>,
+    scopes: Vec<String>,
+    expression: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
-pub struct NewAsset {
+pub struct NewCommonExpressionLanguage {
     #[builder(field)]
     properties: Properties,
     #[builder(field)]
@@ -37,13 +35,16 @@ pub struct NewAsset {
     #[serde(rename = "@id")]
     #[serde(skip_serializing_if = "Option::is_none")]
     id: Option<String>,
-    #[builder(default = "Asset".to_string())]
+    #[builder(default = "CelExpression".to_string())]
     #[serde(rename = "@type")]
     ty: String,
-    data_address: DataAddress,
+    left_operand: String,
+    description: Option<String>,
+    scopes: Vec<String>,
+    expression: String,
 }
 
-impl Asset {
+impl CommonExpressionLanguage {
     pub fn property<T>(&self, property: &str) -> Result<Option<T>, ConversionError>
     where
         T: FromValue,
@@ -68,12 +69,21 @@ where {
         &self.private_properties
     }
 
-    pub fn data_address(&self) -> &DataAddress {
-        &self.data_address
+    pub fn left_operand(&self) -> &str {
+        &self.left_operand
+    }
+    pub fn description(&self) -> &Option<String> {
+        &self.description
+    }
+    pub fn scopes(&self) -> &Vec<String> {
+        &self.scopes
+    }
+    pub fn expression(&self) -> &str {
+        &self.expression
     }
 }
 
-impl<S: asset_builder::State> AssetBuilder<S> {
+impl<S: common_expression_language_builder::State> CommonExpressionLanguageBuilder<S> {
     pub fn property<T>(mut self, property: &str, value: T) -> Self
     where
         T: ToValue,
@@ -91,7 +101,7 @@ impl<S: asset_builder::State> AssetBuilder<S> {
     }
 }
 
-impl<S: new_asset_builder::State> NewAssetBuilder<S> {
+impl<S: new_common_expression_language_builder::State> NewCommonExpressionLanguageBuilder<S> {
     pub fn property<T>(mut self, property: &str, value: T) -> Self
     where
         T: ToValue,
