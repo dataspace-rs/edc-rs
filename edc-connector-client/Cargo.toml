@@ -22,7 +22,7 @@ bon = { workspace = true }
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
 uuid = { workspace = true, features = ["v4"] }
-rstest = "0.26.1"
+rstest = "0.27.0"
 
 [lints]
 workspace = true
