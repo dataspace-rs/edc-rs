@@ -3,6 +3,9 @@ use crate::{
     types::{
         context::WithContext,
         policy::{NewPolicyDefinition, PolicyDefinition},
+        policy_evaluation::{
+            PolicyEvaluationPlan, PolicyEvaluationPlanRequest, PolicyValidationResult,
+        },
         query::Query,
         response::IdResponse,
     },
@@ -85,5 +88,40 @@ impl<'a> PolicyApi<'a> {
             .client
             .path_for(self.version, &[POLICY_DEFINITIONS_PATH, id]);
         self.client.del(url).await
+    }
+
+    /// Validates a stored policy definition against the registered policy
+    /// functions and scopes.
+    pub async fn validate(&self, id: &str) -> EdcResult<PolicyValidationResult> {
+        let url = self
+            .client
+            .path_for(self.version, &[POLICY_DEFINITIONS_PATH, id, "validate"]);
+        self.client
+            .post_empty::<WithContext<PolicyValidationResult>>(url)
+            .await
+            .map(|ctx| ctx.inner)
+    }
+
+    /// Builds the plan the policy engine would follow to evaluate a stored
+    /// policy definition in the given scope (e.g. `catalog`).
+    pub async fn evaluation_plan(
+        &self,
+        id: &str,
+        policy_scope: &str,
+    ) -> EdcResult<PolicyEvaluationPlan> {
+        let url = self.client.path_for(
+            self.version,
+            &[POLICY_DEFINITIONS_PATH, id, "evaluationplan"],
+        );
+        let request = PolicyEvaluationPlanRequest::builder()
+            .policy_scope(policy_scope)
+            .build();
+        self.client
+            .post::<_, WithContext<PolicyEvaluationPlan>>(
+                url,
+                &self.client.context_for(self.version, &request),
+            )
+            .await
+            .map(|ctx| ctx.inner)
     }
 }

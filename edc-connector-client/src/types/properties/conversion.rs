@@ -78,6 +78,19 @@ impl ToValue for u64 {
     }
 }
 
+impl ToValue for bool {
+    fn into_value(self) -> Value {
+        Value::Bool(self)
+    }
+}
+
+/// Any JSON tree, e.g. built with `serde_json::json!`, for nested property values.
+impl ToValue for Value {
+    fn into_value(self) -> Value {
+        self
+    }
+}
+
 impl<T> ToValue for Vec<T>
 where
     T: ToValue,

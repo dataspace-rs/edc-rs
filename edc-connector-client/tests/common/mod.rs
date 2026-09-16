@@ -3,6 +3,7 @@
 use std::{collections::HashMap, future::Future, thread, time::Duration};
 
 use bon::Builder;
+use edc_connector_client::types::dataspace_profile::{DataspaceProfile, DataspaceProtocol};
 use edc_connector_client::types::ExtraTokenFields;
 use edc_connector_client::{
     types::{
@@ -122,19 +123,44 @@ pub fn setup_provider_client_with_auth(auth: Auth) -> EdcConnectorClient {
         .unwrap()
 }
 
+/// Client credentials of the virtual connector's admin, whose token carries
+/// the `management-api:admin` scope required by the global v5 resources.
 #[allow(clippy::unwrap_used)]
-pub fn setup_client(params: ClientParams, version: EdcConnectorApiVersion) -> EdcConnectorClient {
-    if let Some(participant_context) = params.participant_context.clone() {
-        let auth = OAuth2Config::builder()
+pub fn admin_auth() -> Auth {
+    Auth::oauth(
+        OAuth2Config::builder()
             .client_id("admin")
             .client_secret("edc-v-admin-secret")
             .token_url("http://localhost:8080/realms/edcv/protocol/openid-connect/token")
             .scopes(vec!["management-api:admin".to_string()])
-            .build();
+            .build(),
+    )
+    .unwrap()
+}
 
+/// Same provisioning as [`setup_client`], but the returned client
+/// authenticates as the admin so it can call the global (admin scoped) APIs.
+#[allow(clippy::unwrap_used)]
+pub fn setup_admin_client(
+    params: ClientParams,
+    version: EdcConnectorApiVersion,
+) -> EdcConnectorClient {
+    let _ = setup_client(params.clone(), version);
+
+    EdcConnectorClient::builder()
+        .management_url(&params.management_url)
+        .with_auth(admin_auth())
+        .maybe_participant_context(params.participant_context)
+        .build()
+        .unwrap()
+}
+
+#[allow(clippy::unwrap_used)]
+pub fn setup_client(params: ClientParams, version: EdcConnectorApiVersion) -> EdcConnectorClient {
+    if let Some(participant_context) = params.participant_context.clone() {
         let client = EdcConnectorClient::builder()
             .management_url(&params.management_url)
-            .with_auth(Auth::oauth(auth).unwrap())
+            .with_auth(admin_auth())
             .participant_context(participant_context.clone())
             .build()
             .unwrap();
@@ -175,6 +201,32 @@ pub fn setup_client(params: ClientParams, version: EdcConnectorApiVersion) -> Ed
                             &participant_context,
                             &ParticipantContextConfig::builder().entries(entries).build(),
                         )
+                        .await
+                        .unwrap();
+
+                    let _ = client
+                        .dataspace_profiles(version)
+                        .create(
+                            &DataspaceProfile::builder()
+                                .name("http-dsp-profile-2025-1")
+                                .protocol(
+                                    DataspaceProtocol::builder()
+                                        .binding("HTTPS")
+                                        .version("2025-1")
+                                        .namespace("https://w3id.org/dspace/2025/1/")
+                                        .path("/http-dsp-profile-2025-1")
+                                        .build(),
+                                )
+                                .json_ld_context_url(
+                                    "https://w3id.org/dspace/2025/1/context.jsonld",
+                                )
+                                .build(),
+                        )
+                        .await;
+
+                    client
+                        .participants(version)
+                        .associate_profiles(&participant_context, &["http-dsp-profile-2025-1"])
                         .await
                         .unwrap();
                 });
@@ -249,8 +301,10 @@ pub async fn register_dataplane(
     (id, transfer_type)
 }
 
-/// Registers the mock data plane under a fresh id and transfer type, returning
-/// both so the test can assert on them and unregister afterwards.
+/// Registers the mock data plane under the given id and transfer type.
+///
+/// Every test's setup registers the same id concurrently, and the connectors
+/// occasionally reject one of the racing upserts, so the call is retried.
 #[allow(clippy::unwrap_used)]
 pub async fn register_dataplane_with_transfer_type(
     client: &EdcConnectorClient,
@@ -258,11 +312,19 @@ pub async fn register_dataplane_with_transfer_type(
     id: &str,
     transfer_type: &str,
 ) {
-    client
-        .data_planes(version)
-        .register(&new_dataplane_registration(&id, transfer_type))
-        .await
-        .unwrap();
+    let registration = new_dataplane_registration(id, transfer_type);
+    let mut attempts = 0;
+    loop {
+        attempts += 1;
+        match client.data_planes(version).register(&registration).await {
+            Ok(()) => break,
+            Err(err) if attempts < 5 => {
+                eprintln!("data plane registration attempt {attempts} failed: {err}");
+                sleep(Duration::from_millis(200)).await;
+            }
+            Err(err) => panic!("data plane registration failed: {err}"),
+        }
+    }
 }
 
 #[allow(clippy::unwrap_used)]
@@ -339,6 +401,28 @@ pub async fn seed_contract_negotiation(
     provider_cfg: &ClientParams,
     version: EdcConnectorApiVersion,
 ) -> (String, String) {
+    seed_contract_negotiation_with_offer(
+        consumer,
+        consumer_cfg,
+        provider,
+        provider_cfg,
+        version,
+        |offer_id| offer_id.to_string(),
+    )
+    .await
+}
+
+/// Like [`seed_contract_negotiation`], but lets the caller rewrite the offer
+/// id taken from the catalog before the negotiation is initiated.
+#[allow(clippy::unwrap_used)]
+pub async fn seed_contract_negotiation_with_offer(
+    consumer: &EdcConnectorClient,
+    consumer_cfg: &ClientParams,
+    provider: &EdcConnectorClient,
+    provider_cfg: &ClientParams,
+    version: EdcConnectorApiVersion,
+    offer_id: impl FnOnce(&str) -> String,
+) -> (String, String) {
     let (asset_id, _, _) = seed(provider, version).await;
 
     let dataset_request = DatasetRequest::builder()
@@ -354,7 +438,7 @@ pub async fn seed_contract_negotiation(
         .await
         .unwrap();
 
-    let offer_id = dataset.offers()[0].id().unwrap();
+    let offer_id = offer_id(dataset.offers()[0].id().unwrap());
 
     let request = ContractRequest::builder()
         .counter_party_address(&provider_cfg.protocol_address)
@@ -362,7 +446,7 @@ pub async fn seed_contract_negotiation(
         .protocol(consumer_cfg.protocol.clone())
         .policy(
             Policy::builder()
-                .id(offer_id)
+                .id(&offer_id)
                 .kind(PolicyKind::Offer)
                 .assigner(PROVIDER_ID)
                 .target(Target::simple(&asset_id))

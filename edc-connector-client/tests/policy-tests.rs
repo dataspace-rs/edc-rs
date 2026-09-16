@@ -343,3 +343,131 @@ mod query {
         assert_eq!(1, definitions.len());
     }
 }
+
+mod validate {
+    use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
+    use edc_connector_client::{
+        types::policy::{NewPolicyDefinition, Policy},
+        EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
+    };
+    use reqwest::StatusCode;
+    use rstest::rstest;
+    use uuid::Uuid;
+
+    #[rstest]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V5)]
+    #[tokio::test]
+    async fn should_validate_a_policy_definition(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
+        let id = Uuid::new_v4().to_string();
+        let new_policy = NewPolicyDefinition::builder()
+            .id(&id)
+            .policy(Policy::builder().build())
+            .build();
+
+        client.policies(version).create(&new_policy).await.unwrap();
+
+        let result = client.policies(version).validate(&id).await.unwrap();
+
+        assert!(result.is_valid(), "errors: {:?}", result.errors());
+        assert!(result.errors().is_empty());
+    }
+
+    #[rstest]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V5)]
+    #[tokio::test]
+    async fn should_fail_to_validate_a_policy_definition_when_not_existing(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
+
+        let response = client
+            .policies(version)
+            .validate(&Uuid::new_v4().to_string())
+            .await;
+
+        assert!(matches!(
+            response,
+            Err(Error::ManagementApi(ManagementApiError {
+                status_code: StatusCode::NOT_FOUND,
+                error_detail: ManagementApiErrorDetailKind::Parsed(..)
+            }))
+        ))
+    }
+}
+
+mod evaluation_plan {
+    use crate::common::{provider, provider_virtual_edc, setup_client, ClientParams};
+    use edc_connector_client::{
+        types::policy::{Action, NewPolicyDefinition, Permission, Policy},
+        EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
+    };
+    use reqwest::StatusCode;
+    use rstest::rstest;
+    use uuid::Uuid;
+
+    #[rstest]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V5)]
+    #[tokio::test]
+    async fn should_create_an_evaluation_plan(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
+        let id = Uuid::new_v4().to_string();
+        let new_policy = NewPolicyDefinition::builder()
+            .id(&id)
+            .policy(
+                Policy::builder()
+                    .permission(Permission::builder().action(Action::simple("use")).build())
+                    .build(),
+            )
+            .build();
+
+        client.policies(version).create(&new_policy).await.unwrap();
+
+        let plan = client
+            .policies(version)
+            .evaluation_plan(&id, "catalog")
+            .await
+            .unwrap();
+
+        assert_eq!(1, plan.permission_steps().len());
+        assert!(plan.prohibition_steps().is_empty());
+        assert!(plan.obligation_steps().is_empty());
+        let permission = &plan.permission_steps()[0];
+        assert_eq!("PermissionStep", permission.ty());
+        assert!(permission.constraint_steps().is_empty());
+    }
+
+    #[rstest]
+    #[case(provider(), EdcConnectorApiVersion::V4)]
+    #[case(provider_virtual_edc(), EdcConnectorApiVersion::V5)]
+    #[tokio::test]
+    async fn should_fail_to_create_an_evaluation_plan_when_not_existing(
+        #[case] provider: ClientParams,
+        #[case] version: EdcConnectorApiVersion,
+    ) {
+        let client = setup_client(provider, version);
+
+        let response = client
+            .policies(version)
+            .evaluation_plan(&Uuid::new_v4().to_string(), "catalog")
+            .await;
+
+        assert!(matches!(
+            response,
+            Err(Error::ManagementApi(ManagementApiError {
+                status_code: StatusCode::NOT_FOUND,
+                error_detail: ManagementApiErrorDetailKind::Parsed(..)
+            }))
+        ))
+    }
+}

@@ -95,9 +95,21 @@ pub struct NegotiationState {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminateNegotiation {
+    #[serde(rename = "@type")]
+    pub(crate) ty: String,
     #[serde(rename = "@id")]
     pub(crate) id: String,
     pub(crate) reason: String,
+}
+
+impl TerminateNegotiation {
+    pub(crate) fn new(id: &str, reason: &str) -> Self {
+        Self {
+            ty: "TerminateNegotiation".to_string(),
+            id: id.to_string(),
+            reason: reason.to_string(),
+        }
+    }
 }
 
 impl NegotiationState {

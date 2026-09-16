@@ -7,9 +7,10 @@ use std::{future::Future, sync::Arc};
 
 use crate::{
     api::{
-        AssetApi, CatalogApi, CommonExpressionLanguageApi, ContractAgreementApi,
-        ContractDefinitionApi, ContractNegotiationApi, DataPlaneApi, EdrApi, ParticipantContextApi,
-        ParticipantContextConfigApi, PolicyApi, SecretsApi, TransferProcessApi,
+        AssetApi, CachedDocumentApi, CatalogApi, CommonExpressionLanguageApi, ContractAgreementApi,
+        ContractDefinitionApi, ContractNegotiationApi, DataPlaneApi, DataspaceProfileApi,
+        DcpScopeApi, DiscoveryApi, EdrApi, ParticipantContextApi, ParticipantContextConfigApi,
+        PolicyApi, SchemaValidatorApi, SecretsApi, TransferProcessApi,
     },
     error::{
         BuilderError, ManagementApiError, ManagementApiErrorDetail, ManagementApiErrorDetailKind,
@@ -21,7 +22,12 @@ use crate::{
 #[derive(Clone)]
 pub struct EdcConnectorClient(Arc<EdcConnectorClientInternal>);
 
-#[allow(unused)]
+/// Where a management API resource lives relative to the participant context.
+///
+/// [`ApiTarget::Participant`] resources are nested under
+/// `/participants/{participantContextId}` when the client is configured with
+/// a participant context (EDC-V), while [`ApiTarget::Admin`] resources are
+/// global and always sit directly under the API version.
 pub enum ApiTarget {
     Participant,
     Admin,
@@ -53,6 +59,23 @@ impl EdcConnectorClientInternal {
         let response = self
             .client
             .get(path.as_ref())
+            .authenticated(&self.auth)
+            .await?
+            .send()
+            .await?;
+
+        self.handle_response(response, as_json).await
+    }
+
+    pub(crate) async fn get_with_query<R: DeserializeOwned>(
+        &self,
+        path: impl AsRef<str>,
+        query: &[(&str, String)],
+    ) -> EdcResult<R> {
+        let response = self
+            .client
+            .get(path.as_ref())
+            .query(query)
             .authenticated(&self.auth)
             .await?
             .send()
@@ -108,6 +131,40 @@ impl EdcConnectorClientInternal {
         body: &I,
     ) -> EdcResult<()> {
         self.internal_post(path, body, empty).await
+    }
+
+    /// POST without a request body (not even a JSON `null`), for endpoints
+    /// that act on the resource addressed by the path only.
+    pub(crate) async fn post_empty<R: DeserializeOwned>(
+        &self,
+        path: impl AsRef<str>,
+    ) -> EdcResult<R> {
+        let response = self
+            .client
+            .post(path.as_ref())
+            .authenticated(&self.auth)
+            .await?
+            .send()
+            .await?;
+
+        self.handle_response(response, as_json).await
+    }
+
+    pub(crate) async fn patch_no_response<I: Serialize>(
+        &self,
+        path: impl AsRef<str>,
+        body: &I,
+    ) -> EdcResult<()> {
+        let response = self
+            .client
+            .patch(path.as_ref())
+            .json(body)
+            .authenticated(&self.auth)
+            .await?
+            .send()
+            .await?;
+
+        self.handle_response(response, empty).await
     }
 
     async fn internal_put<I, F, Fut, R>(
@@ -324,11 +381,37 @@ impl EdcConnectorClient {
         ParticipantContextConfigApi::new(&self.0, version)
     }
 
+    /// Common Expression Language expressions. Global (admin) resource.
     pub fn common_expression_language(
         &self,
         version: EdcConnectorApiVersion,
     ) -> CommonExpressionLanguageApi<'_> {
         CommonExpressionLanguageApi::new(&self.0, version)
+    }
+
+    /// Counter party protocol discovery (`/discover/request`), participant scoped.
+    pub fn discovery(&self, version: EdcConnectorApiVersion) -> DiscoveryApi<'_> {
+        DiscoveryApi::new(&self.0, version)
+    }
+
+    /// Dataspace profiles (`/dataspaceprofiles`). Global resource.
+    pub fn dataspace_profiles(&self, version: EdcConnectorApiVersion) -> DataspaceProfileApi<'_> {
+        DataspaceProfileApi::new(&self.0, version)
+    }
+
+    /// DCP scopes (`/dcpscopes`). Global (admin) resource.
+    pub fn dcp_scopes(&self, version: EdcConnectorApiVersion) -> DcpScopeApi<'_> {
+        DcpScopeApi::new(&self.0, version)
+    }
+
+    /// Cached documents (`/cacheddocuments`). Global (admin) resource.
+    pub fn cached_documents(&self, version: EdcConnectorApiVersion) -> CachedDocumentApi<'_> {
+        CachedDocumentApi::new(&self.0, version)
+    }
+
+    /// Schema validator registrations (`/schemavalidators`). Global (admin) resource.
+    pub fn schema_validators(&self, version: EdcConnectorApiVersion) -> SchemaValidatorApi<'_> {
+        SchemaValidatorApi::new(&self.0, version)
     }
 }
 

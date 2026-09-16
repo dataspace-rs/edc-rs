@@ -56,7 +56,7 @@ impl<'a> TransferProcessApi<'a> {
     pub async fn get_state(&self, id: &str) -> EdcResult<TransferProcessState> {
         let url = self
             .client
-            .path_for(self.version, &[TRANSFER_PROCESSES_PATH, id]);
+            .path_for(self.version, &[TRANSFER_PROCESSES_PATH, id, "state"]);
         self.client
             .get::<WithContext<TransferState>>(url)
             .await

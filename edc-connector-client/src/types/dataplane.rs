@@ -22,6 +22,9 @@ pub struct DataPlaneInstance {
     #[serde(default)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     allowed_transfer_types: Vec<String>,
+    #[serde(default)]
+    #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
+    destination_provision_types: Vec<String>,
     state: DataPlaneInstanceState,
     #[serde(default)]
     properties: Properties,
@@ -46,6 +49,10 @@ impl DataPlaneInstance {
 
     pub fn allowed_transfer_types(&self) -> &Vec<String> {
         &self.allowed_transfer_types
+    }
+
+    pub fn destination_provision_types(&self) -> &Vec<String> {
+        &self.destination_provision_types
     }
 
     pub fn state(&self) -> &DataPlaneInstanceState {

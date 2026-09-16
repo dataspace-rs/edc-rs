@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 pub mod asset;
+pub mod cached_document;
 pub mod callback_address;
 pub mod catalog;
 pub mod common_expression_language;
@@ -13,12 +14,17 @@ pub mod contract_definition;
 pub mod contract_negotiation;
 pub mod data_address;
 pub mod dataplane;
+pub mod dataspace_profile;
+pub mod dcp_scope;
+pub mod discovery;
 pub mod edr;
 pub mod participants;
 pub mod policy;
+pub mod policy_evaluation;
 pub mod properties;
 pub mod query;
 pub mod response;
+pub mod schema_validator;
 pub mod secret;
 pub mod transfer_process;
 

@@ -1,6 +1,7 @@
-use crate::client::EdcConnectorClientInternal;
+use crate::client::{ApiTarget, EdcConnectorClientInternal};
 use crate::types::common_expression_language::{
-    CommonExpressionLanguage, NewCommonExpressionLanguage,
+    CelExpressionTestRequest, CelExpressionTestResponse, CommonExpressionLanguage,
+    NewCommonExpressionLanguage,
 };
 use crate::types::context::WithContext;
 use crate::types::query::Query;
@@ -9,6 +10,10 @@ use crate::{EdcConnectorApiVersion, EdcResult};
 
 const CEL_EXPRESSIONS_PATH: &str = "celexpressions";
 
+/// Common Expression Language (CEL) expressions used by policy evaluation.
+///
+/// This is a global (admin) resource: the endpoints are never nested under a
+/// participant context, whatever the client is configured with.
 pub struct CommonExpressionLanguageApi<'a> {
     client: &'a EdcConnectorClientInternal,
     version: EdcConnectorApiVersion,
@@ -26,7 +31,7 @@ impl<'a> CommonExpressionLanguageApi<'a> {
         &self,
         common_expression_language: &NewCommonExpressionLanguage,
     ) -> EdcResult<IdResponse<String>> {
-        let url = self.client.path_for(self.version, &[CEL_EXPRESSIONS_PATH]);
+        let url = self.path(&[CEL_EXPRESSIONS_PATH]);
         self.client
             .post::<_, WithContext<IdResponse<String>>>(
                 url,
@@ -39,9 +44,7 @@ impl<'a> CommonExpressionLanguageApi<'a> {
     }
 
     pub async fn get(&self, id: &str) -> EdcResult<CommonExpressionLanguage> {
-        let url = self
-            .client
-            .path_for(self.version, &[CEL_EXPRESSIONS_PATH, id]);
+        let url = self.path(&[CEL_EXPRESSIONS_PATH, id]);
         self.client
             .get::<WithContext<CommonExpressionLanguage>>(url)
             .await
@@ -52,7 +55,7 @@ impl<'a> CommonExpressionLanguageApi<'a> {
         &self,
         common_expression_language: &CommonExpressionLanguage,
     ) -> EdcResult<()> {
-        let url = self.client.path_for(self.version, &[CEL_EXPRESSIONS_PATH]);
+        let url = self.path(&[CEL_EXPRESSIONS_PATH, common_expression_language.id()]);
         self.client
             .put(
                 url,
@@ -64,9 +67,7 @@ impl<'a> CommonExpressionLanguageApi<'a> {
     }
 
     pub async fn query(&self, query: Query) -> EdcResult<Vec<CommonExpressionLanguage>> {
-        let url = self
-            .client
-            .path_for(self.version, &[CEL_EXPRESSIONS_PATH, "request"]);
+        let url = self.path(&[CEL_EXPRESSIONS_PATH, "request"]);
         self.client
             .post::<_, Vec<WithContext<CommonExpressionLanguage>>>(
                 url,
@@ -77,9 +78,27 @@ impl<'a> CommonExpressionLanguageApi<'a> {
     }
 
     pub async fn delete(&self, id: &str) -> EdcResult<()> {
-        let url = self
-            .client
-            .path_for(self.version, &[CEL_EXPRESSIONS_PATH, id]);
+        let url = self.path(&[CEL_EXPRESSIONS_PATH, id]);
         self.client.del(url).await
+    }
+
+    /// Evaluates an expression against the given parameters without storing it.
+    pub async fn test(
+        &self,
+        request: &CelExpressionTestRequest,
+    ) -> EdcResult<CelExpressionTestResponse> {
+        let url = self.path(&[CEL_EXPRESSIONS_PATH, "test"]);
+        self.client
+            .post::<_, WithContext<CelExpressionTestResponse>>(
+                url,
+                &self.client.context_for(self.version, request),
+            )
+            .await
+            .map(|ctx| ctx.inner)
+    }
+
+    fn path(&self, paths: &[&str]) -> String {
+        self.client
+            .path_for_target(ApiTarget::Admin, self.version, paths)
     }
 }

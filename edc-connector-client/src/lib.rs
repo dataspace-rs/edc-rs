@@ -54,6 +54,17 @@
 //!     .build()?;
 //! # Ok(())
 //! # }
+//! ```
+//!
+//! With the Management API v5 (EDC-V) the participant scoped resources are
+//! routed under `/v5/participants/{participant_context}/...`, while the global
+//! ones ignore the participant context and need the `management-api:admin`
+//! scope: [`EdcConnectorClient::participants`],
+//! [`EdcConnectorClient::participant_configs`],
+//! [`EdcConnectorClient::dataspace_profiles`],
+//! [`EdcConnectorClient::common_expression_language`],
+//! [`EdcConnectorClient::dcp_scopes`], [`EdcConnectorClient::cached_documents`]
+//! and [`EdcConnectorClient::schema_validators`].
 
 pub mod api;
 mod auth;

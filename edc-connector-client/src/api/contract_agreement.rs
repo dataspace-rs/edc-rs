@@ -1,6 +1,9 @@
 use crate::{
     client::EdcConnectorClientInternal,
-    types::{context::WithContext, contract_agreement::ContractAgreement, query::Query},
+    types::{
+        context::WithContext, contract_agreement::ContractAgreement,
+        contract_negotiation::ContractNegotiation, query::Query,
+    },
     EdcConnectorApiVersion, EdcResult,
 };
 
@@ -25,6 +28,17 @@ impl<'a> ContractAgreementApi<'a> {
             .path_for(self.version, &[CONTRACT_AGREEMENTS_PATH, id]);
         self.client
             .get::<WithContext<ContractAgreement>>(url)
+            .await
+            .map(|ctx| ctx.inner)
+    }
+
+    /// Fetches the contract negotiation that produced an agreement.
+    pub async fn get_negotiation(&self, id: &str) -> EdcResult<ContractNegotiation> {
+        let url = self
+            .client
+            .path_for(self.version, &[CONTRACT_AGREEMENTS_PATH, id, "negotiation"]);
+        self.client
+            .get::<WithContext<ContractNegotiation>>(url)
             .await
             .map(|ctx| ctx.inner)
     }

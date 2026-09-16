@@ -58,6 +58,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 
+#### Management API v5 (EDC-V)
+
+Global v5 resources (`participants`, `participant_configs`, `dataspace_profiles`,
+`common_expression_language`, `dcp_scopes`, `cached_documents`,
+`schema_validators`) ignore the client's participant context and need a token
+with the `management-api:admin` scope; everything else is routed under
+`/v5/participants/{participant_context}/...`.
+
 ### Development
 
 

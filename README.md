@@ -146,6 +146,43 @@ let response = client.assets().create(&asset).await?;
 ```
 
 
+#### Management API v5 (EDC-V)
+
+Calls go through `client.<api>(EdcConnectorApiVersion::V5)`. Participant scoped
+resources (assets, policies, contract definitions, negotiations, agreements,
+transfers, catalog, data planes, discovery) are routed under
+`/v5/participants/{participant_context}/...` when the client is built with
+`.participant_context(..)`. Global resources ignore the participant context and
+need a token with the `management-api:admin` scope (profiles can be read with
+`management-api:profiles:read`):
+
+| Accessor | Resource |
+|---|---|
+| `participants(V5)` | `/participants` (create, get, list, update, delete, profiles) |
+| `participant_configs(V5)` | `/participants/{id}/config` (get, save, patch) |
+| `dataspace_profiles(V5)` | `/dataspaceprofiles` |
+| `common_expression_language(V5)` | `/celexpressions` (incl. `test`) |
+| `dcp_scopes(V5)` | `/dcpscopes` |
+| `cached_documents(V5)` | `/cacheddocuments` (incl. `refresh`) |
+| `schema_validators(V5)` | `/schemavalidators` |
+
+```rust
+use edc_connector_client::{types::participants::ParticipantContextConfigPatch, EdcConnectorApiVersion};
+
+let participants = client.participants(EdcConnectorApiVersion::V5).list(0, 50).await?;
+
+client
+    .participant_configs(EdcConnectorApiVersion::V5)
+    .patch(
+        "my-participant",
+        &ParticipantContextConfigPatch::builder()
+            .entry("edc.participant.id", "my-participant")
+            .remove_entry("obsolete.key")
+            .build(),
+    )
+    .await?;
+```
+
 ### Development
 
 

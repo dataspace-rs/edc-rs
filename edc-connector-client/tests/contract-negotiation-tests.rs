@@ -330,4 +330,210 @@ mod contract_negotiations {
             ));
         }
     }
+
+    mod agreement {
+        use crate::common::{
+            consumer, consumer_virtual_edc, provider, provider_virtual_edc,
+            seed_contract_agreement, setup_client, ClientParams,
+        };
+        use edc_connector_client::{
+            EdcConnectorApiVersion, Error, ManagementApiError, ManagementApiErrorDetailKind,
+        };
+        use reqwest::StatusCode;
+        use rstest::rstest;
+        use uuid::Uuid;
+
+        #[rstest]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V5
+        )]
+        #[tokio::test]
+        async fn should_get_the_agreement_of_a_contract_negotiation(
+            #[case] consumer_cfg: ClientParams,
+            #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
+
+            let (agreement_id, contract_negotiation_id, asset_id) = seed_contract_agreement(
+                &consumer,
+                &consumer_cfg,
+                &provider,
+                &provider_cfg,
+                version,
+            )
+            .await;
+
+            let agreement = consumer
+                .contract_negotiations(version)
+                .get_agreement(&contract_negotiation_id)
+                .await
+                .unwrap();
+
+            assert_eq!(agreement_id, agreement.id());
+            assert_eq!(asset_id, agreement.asset_id());
+        }
+
+        #[rstest]
+        #[case(consumer(), EdcConnectorApiVersion::V4)]
+        #[case(consumer_virtual_edc(), EdcConnectorApiVersion::V5)]
+        #[tokio::test]
+        async fn should_fail_to_get_the_agreement_when_negotiation_not_existing(
+            #[case] consumer_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let consumer = setup_client(consumer_cfg, version);
+
+            let response = consumer
+                .contract_negotiations(version)
+                .get_agreement(&Uuid::new_v4().to_string())
+                .await;
+
+            assert!(matches!(
+                response,
+                Err(Error::ManagementApi(ManagementApiError {
+                    status_code: StatusCode::NOT_FOUND,
+                    error_detail: ManagementApiErrorDetailKind::Parsed(..)
+                }))
+            ))
+        }
+    }
+
+    mod delete {
+        use crate::common::{
+            consumer, consumer_virtual_edc, provider, provider_virtual_edc,
+            seed_contract_agreement, seed_contract_negotiation_with_offer, setup_client,
+            wait_for_negotiation_state, ClientParams,
+        };
+        use edc_connector_client::{
+            types::contract_negotiation::ContractNegotiationState, EdcConnectorApiVersion, Error,
+            ManagementApiError, ManagementApiErrorDetailKind,
+        };
+        use reqwest::StatusCode;
+        use rstest::rstest;
+        use uuid::Uuid;
+
+        #[rstest]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V5
+        )]
+        #[tokio::test]
+        async fn should_delete_a_terminated_contract_negotiation(
+            #[case] consumer_cfg: ClientParams,
+            #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
+
+            // An offer id the provider cannot resolve: the negotiation is
+            // accepted by the consumer but ends up terminated.
+            let (contract_negotiation_id, _) = seed_contract_negotiation_with_offer(
+                &consumer,
+                &consumer_cfg,
+                &provider,
+                &provider_cfg,
+                version,
+                |offer_id| format!("{offer_id}-unknown"),
+            )
+            .await;
+
+            wait_for_negotiation_state(
+                &consumer,
+                &contract_negotiation_id,
+                ContractNegotiationState::Terminated,
+                version,
+            )
+            .await;
+
+            consumer
+                .contract_negotiations(version)
+                .delete(&contract_negotiation_id)
+                .await
+                .unwrap();
+
+            let response = consumer
+                .contract_negotiations(version)
+                .get(&contract_negotiation_id)
+                .await;
+
+            assert!(matches!(
+                response,
+                Err(Error::ManagementApi(ManagementApiError {
+                    status_code: StatusCode::NOT_FOUND,
+                    ..
+                }))
+            ))
+        }
+
+        #[rstest]
+        #[case(consumer(), provider(), EdcConnectorApiVersion::V4)]
+        #[case(
+            consumer_virtual_edc(),
+            provider_virtual_edc(),
+            EdcConnectorApiVersion::V5
+        )]
+        #[tokio::test]
+        async fn should_fail_to_delete_a_contract_negotiation_with_an_agreement(
+            #[case] consumer_cfg: ClientParams,
+            #[case] provider_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let provider = setup_client(provider_cfg.clone(), version);
+            let consumer = setup_client(consumer_cfg.clone(), version);
+
+            let (_, contract_negotiation_id, _) = seed_contract_agreement(
+                &consumer,
+                &consumer_cfg,
+                &provider,
+                &provider_cfg,
+                version,
+            )
+            .await;
+
+            let response = consumer
+                .contract_negotiations(version)
+                .delete(&contract_negotiation_id)
+                .await;
+
+            assert!(matches!(
+                response,
+                Err(Error::ManagementApi(ManagementApiError {
+                    status_code: StatusCode::CONFLICT,
+                    error_detail: ManagementApiErrorDetailKind::Parsed(..)
+                }))
+            ))
+        }
+
+        #[rstest]
+        #[case(consumer(), EdcConnectorApiVersion::V4)]
+        #[case(consumer_virtual_edc(), EdcConnectorApiVersion::V5)]
+        #[tokio::test]
+        async fn should_fail_to_delete_a_contract_negotiation_when_not_existing(
+            #[case] consumer_cfg: ClientParams,
+            #[case] version: EdcConnectorApiVersion,
+        ) {
+            let consumer = setup_client(consumer_cfg, version);
+
+            let response = consumer
+                .contract_negotiations(version)
+                .delete(&Uuid::new_v4().to_string())
+                .await;
+
+            assert!(matches!(
+                response,
+                Err(Error::ManagementApi(ManagementApiError {
+                    status_code: StatusCode::NOT_FOUND,
+                    error_detail: ManagementApiErrorDetailKind::Parsed(..)
+                }))
+            ))
+        }
+    }
 }
