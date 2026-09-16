@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" id="oranda" class="hacker">
+  <head>
+    <title>edc-rs</title>
+    
+    
+      <link rel="icon" href="/edc-rs/favicon.ico" />
+    
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="edc-rs" />
+    
+    
+    
+    <meta http-equiv="Permissions-Policy" content="interest-cohort=()" />
+    <link rel="stylesheet" href="/edc-rs/oranda-v0.6.1.css" />
+    
+    
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-body">
+        
+
+        <main>
+          <header>
+            
+            <h1 class="title">edc-rs</h1>
+            
+          </header>
+
+          
+
+
+    <div class="oranda-hide">
+  <h1>EDC-rs</h1>
+</div>
+<div>
+  <strong>
+    Rust client and tools for <a href="https://github.com/eclipse-edc/Connector" rel="noopener noreferrer">EDC</a>.
+  </strong>
+</div>
+<br>
+<div>
+  <a href="https://github.com/dataspace-rs/edc-rs?query=workflow%3ATests" rel="noopener noreferrer">
+    <img src="https://github.com/dataspace-rs/edc-rs/workflows/Tests/badge.svg" alt="Tests status">
+  </a>
+  <a href="https://crates.io/crates/edc-connector-client" rel="noopener noreferrer">
+    <img src="https://img.shields.io/crates/d/edc-connector-client.svg?style=flat-square" alt="Download">
+  </a>
+  <a href="https://docs.rs/edc-connector-client" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square" alt="docs.rs docs">
+  </a>
+   <a href="https://opensource.org/licenses/Apache-2.0" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="license">
+  </a>
+   <a href="https://deps.rs/repo/github/dataspace-rs/edc-rs" rel="noopener noreferrer">
+    <img src="https://deps.rs/repo/github/dataspace-rs/edc-rs/status.svg" alt="license">
+  </a>
+</div>
+<h2>edc-connector-client</h2>
+<p>A Rust client for <a href="https://github.com/eclipse-edc/Connector" rel="noopener noreferrer">EDC</a>.</p>
+<h3>Installation</h3>
+<p>Install from <a href="https://crates.io/" rel="noopener noreferrer">crates.io</a></p>
+<pre style="background-color:#263238;"><span style="color:#89ddff;">[dependencies]
+</span><span style="color:#f07178;">edc-connector-client </span><span style="color:#89ddff;">= "</span><span style="color:#c3e88d;">0.1</span><span style="color:#89ddff;">"
+</span></pre>
+
+<h3>Examples</h3>
+<h4>Basic usage</h4>
+<p>Fetching an asset with id <code>1</code> and reading the <code>description</code> property as string.</p>
+<pre style="background-color:#263238;"><span style="color:#c792ea;">use </span><span style="color:#eeffff;">edc_connector_client</span><span style="color:#89ddff;">::{</span><span style="color:#eeffff;">Auth</span><span style="color:#89ddff;">,</span><span style="color:#eeffff;"> EdcConnectorClient</span><span style="color:#89ddff;">};
+</span><span style="color:#eeffff;">
+</span><span style="color:#89ddff;">#[</span><span style="color:#eeffff;">tokio::main</span><span style="color:#89ddff;">]
+</span><span style="color:#eeffff;">async </span><span style="font-style:italic;color:#c792ea;">fn </span><span style="color:#82aaff;">main</span><span style="color:#89ddff;">() -&gt; </span><span style="color:#eeffff;">Result</span><span style="color:#89ddff;">&lt;()</span><span style="color:#eeffff;">, Box</span><span style="color:#89ddff;">&lt;</span><span style="color:#eeffff;">dyn std</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">error</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">Error</span><span style="color:#89ddff;">&gt;&gt; {
+</span><span style="color:#eeffff;">    </span><span style="font-style:italic;color:#c792ea;">let</span><span style="color:#eeffff;"> client </span><span style="color:#89ddff;">= </span><span style="color:#eeffff;">EdcConnectorClient</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">builder</span><span style="color:#89ddff;">()
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">management_url</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">http://myedc</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">with_auth</span><span style="color:#89ddff;">(</span><span style="color:#eeffff;">Auth</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">api_token</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">password</span><span style="color:#89ddff;">"))
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">build</span><span style="color:#89ddff;">()?;
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">    </span><span style="font-style:italic;color:#c792ea;">let</span><span style="color:#eeffff;"> asset </span><span style="color:#89ddff;">=</span><span style="color:#eeffff;"> client.</span><span style="color:#82aaff;">assets</span><span style="color:#89ddff;">()</span><span style="color:#eeffff;">.</span><span style="color:#82aaff;">get</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">1</span><span style="color:#89ddff;">")</span><span style="color:#eeffff;">.await</span><span style="color:#89ddff;">?;
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">    println!</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">Got </span><span style="color:#eeffff;">{:?}</span><span style="color:#89ddff;">",</span><span style="color:#eeffff;"> asset</span><span style="color:#89ddff;">);
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">    println!</span><span style="color:#89ddff;">(
+</span><span style="color:#eeffff;">        </span><span style="color:#89ddff;">"</span><span style="color:#c3e88d;">Property description: </span><span style="color:#eeffff;">{:?}</span><span style="color:#89ddff;">",
+</span><span style="color:#eeffff;">        asset.property</span><span style="color:#89ddff;">::&lt;</span><span style="color:#eeffff;">String</span><span style="color:#89ddff;">&gt;("</span><span style="color:#c3e88d;">description</span><span style="color:#89ddff;">")</span><span style="color:#eeffff;">.</span><span style="color:#82aaff;">unwrap</span><span style="color:#89ddff;">()
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">);
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">    </span><span style="color:#ffcb6b;">Ok</span><span style="color:#89ddff;">(())
+</span><span style="color:#89ddff;">}
+</span></pre>
+
+<h4>Authentication</h4>
+<p>The client supports these mechanisms via <code>Auth</code>:</p>
+<ul>
+<li><code>Auth::api_token("...")</code> sends the token in the <code>X-Api-Key</code> header.</li>
+<li><code>Auth::bearer_token("...")</code> sends a fixed <code>Authorization: Bearer</code> token.</li>
+<li><code>Auth::oauth(OAuth2Config)</code> obtains a token with the OAuth2 client credentials grant and refreshes it when it expires.</li>
+<li><code>Auth::token_exchange(TokenExchangeConfig)</code> exchanges a workload credential (e.g. a projected Kubernetes
+ServiceAccount token) at an RFC 8693 token exchange broker for a short-lived scoped token, as described in the
+<a href="https://github.com/eclipse-dataspace-hub/jad/blob/main/docs/token-exchange.md" rel="noopener noreferrer">JAD token exchange spec</a>.
+The exchanged token is cached until it expires and the credential file is re-read on every exchange, so
+rotation is picked up. No client credentials are sent: the subject token is the sole proof of identity.</li>
+</ul>
+<pre style="background-color:#263238;"><span style="color:#c792ea;">use </span><span style="color:#eeffff;">edc_connector_client</span><span style="color:#89ddff;">::{</span><span style="color:#eeffff;">Auth</span><span style="color:#89ddff;">,</span><span style="color:#eeffff;"> EdcConnectorClient</span><span style="color:#89ddff;">,</span><span style="color:#eeffff;"> SubjectToken</span><span style="color:#89ddff;">,</span><span style="color:#eeffff;"> TokenExchangeConfig</span><span style="color:#89ddff;">};
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">let</span><span style="color:#eeffff;"> auth </span><span style="color:#89ddff;">= </span><span style="color:#eeffff;">Auth</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">token_exchange</span><span style="color:#89ddff;">(
+</span><span style="color:#eeffff;">    TokenExchangeConfig</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">builder</span><span style="color:#89ddff;">()
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">token_exchange_url</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">http://jwtlet.edc-v.svc.cluster.local:8080/token</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">subject_token</span><span style="color:#89ddff;">(</span><span style="color:#eeffff;">SubjectToken</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">file</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">/var/run/secrets/jwtlet/token</span><span style="color:#89ddff;">"))
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">resource</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">&lt;participant-context-id&gt;</span><span style="color:#89ddff;">") </span><span style="font-style:italic;color:#546e7a;">// becomes the `sub` claim
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">audience</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">edcv</span><span style="color:#89ddff;">") </span><span style="font-style:italic;color:#546e7a;">// default
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">scopes</span><span style="color:#89ddff;">(</span><span style="color:#eeffff;">vec!</span><span style="color:#89ddff;">["</span><span style="color:#c3e88d;">management-api:assets:read</span><span style="color:#89ddff;">"</span><span style="color:#eeffff;">.</span><span style="color:#82aaff;">to_string</span><span style="color:#89ddff;">()])
+</span><span style="color:#eeffff;">        .</span><span style="color:#82aaff;">build</span><span style="color:#89ddff;">(),
+</span><span style="color:#89ddff;">)?;
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">let</span><span style="color:#eeffff;"> client </span><span style="color:#89ddff;">= </span><span style="color:#eeffff;">EdcConnectorClient</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">builder</span><span style="color:#89ddff;">()
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">management_url</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">http://myedc</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">with_auth</span><span style="color:#89ddff;">(</span><span style="color:#eeffff;">auth</span><span style="color:#89ddff;">)
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">participant_context</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">&lt;participant-context-id&gt;</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">build</span><span style="color:#89ddff;">()?;
+</span></pre>
+
+<h4>Creating an asset with dataplane metadata</h4>
+<p><code>dataplaneMetadata</code> replaces the deprecated <code>dataAddress</code> on assets (EDC 0.18+). Labels and
+profiles are used to select a data plane, while properties are handed over to it.</p>
+<pre style="background-color:#263238;"><span style="color:#c792ea;">use </span><span style="color:#eeffff;">edc_connector_client</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">types</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">asset</span><span style="color:#89ddff;">::{</span><span style="color:#eeffff;">DataplaneMetadata</span><span style="color:#89ddff;">,</span><span style="color:#eeffff;"> NewAsset</span><span style="color:#89ddff;">};
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">let</span><span style="color:#eeffff;"> asset </span><span style="color:#89ddff;">= </span><span style="color:#eeffff;">NewAsset</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">builder</span><span style="color:#89ddff;">()
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">id</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">1</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">property</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">description</span><span style="color:#89ddff;">", "</span><span style="color:#c3e88d;">An asset</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">dataplane_metadata</span><span style="color:#89ddff;">(
+</span><span style="color:#eeffff;">        DataplaneMetadata</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">builder</span><span style="color:#89ddff;">()
+</span><span style="color:#eeffff;">            .</span><span style="color:#82aaff;">label</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">http</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">            .</span><span style="color:#82aaff;">profile</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">http-profile</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">            .</span><span style="color:#82aaff;">property</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">baseUrl</span><span style="color:#89ddff;">", "</span><span style="color:#c3e88d;">https://example.com/data</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">            .</span><span style="color:#82aaff;">build</span><span style="color:#89ddff;">(),
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">)
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">build</span><span style="color:#89ddff;">();
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">let</span><span style="color:#eeffff;"> response </span><span style="color:#89ddff;">=</span><span style="color:#eeffff;"> client.</span><span style="color:#82aaff;">assets</span><span style="color:#89ddff;">()</span><span style="color:#eeffff;">.</span><span style="color:#82aaff;">create</span><span style="color:#89ddff;">(&amp;</span><span style="color:#eeffff;">asset</span><span style="color:#89ddff;">)</span><span style="color:#eeffff;">.await</span><span style="color:#89ddff;">?;
+</span></pre>
+
+<h4>Management API v5 (EDC-V)</h4>
+<p>Calls go through <code>client.&lt;api&gt;(EdcConnectorApiVersion::V5)</code>. Participant scoped
+resources (assets, policies, contract definitions, negotiations, agreements,
+transfers, catalog, data planes, discovery) are routed under
+<code>/v5/participants/{participant_context}/...</code> when the client is built with
+<code>.participant_context(..)</code>. Global resources ignore the participant context and
+need a token with the <code>management-api:admin</code> scope (profiles can be read with
+<code>management-api:profiles:read</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Accessor</th>
+<th>Resource</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>participants(V5)</code></td>
+<td><code>/participants</code> (create, get, list, update, delete, profiles)</td>
+</tr>
+<tr>
+<td><code>participant_configs(V5)</code></td>
+<td><code>/participants/{id}/config</code> (get, save, patch)</td>
+</tr>
+<tr>
+<td><code>dataspace_profiles(V5)</code></td>
+<td><code>/dataspaceprofiles</code></td>
+</tr>
+<tr>
+<td><code>common_expression_language(V5)</code></td>
+<td><code>/celexpressions</code> (incl. <code>test</code>)</td>
+</tr>
+<tr>
+<td><code>dcp_scopes(V5)</code></td>
+<td><code>/dcpscopes</code></td>
+</tr>
+<tr>
+<td><code>cached_documents(V5)</code></td>
+<td><code>/cacheddocuments</code> (incl. <code>refresh</code>)</td>
+</tr>
+<tr>
+<td><code>schema_validators(V5)</code></td>
+<td><code>/schemavalidators</code></td>
+</tr>
+</tbody>
+</table>
+<pre style="background-color:#263238;"><span style="color:#c792ea;">use </span><span style="color:#eeffff;">edc_connector_client</span><span style="color:#89ddff;">::{</span><span style="color:#eeffff;">types</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">participants</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">ParticipantContextConfigPatch</span><span style="color:#89ddff;">,</span><span style="color:#eeffff;"> EdcConnectorApiVersion</span><span style="color:#89ddff;">};
+</span><span style="color:#eeffff;">
+</span><span style="font-style:italic;color:#c792ea;">let</span><span style="color:#eeffff;"> participants </span><span style="color:#89ddff;">=</span><span style="color:#eeffff;"> client.</span><span style="color:#82aaff;">participants</span><span style="color:#89ddff;">(</span><span style="color:#eeffff;">EdcConnectorApiVersion</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">V5</span><span style="color:#89ddff;">)</span><span style="color:#eeffff;">.</span><span style="color:#82aaff;">list</span><span style="color:#89ddff;">(</span><span style="color:#f78c6c;">0</span><span style="color:#89ddff;">, </span><span style="color:#f78c6c;">50</span><span style="color:#89ddff;">)</span><span style="color:#eeffff;">.await</span><span style="color:#89ddff;">?;
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">client
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">participant_configs</span><span style="color:#89ddff;">(</span><span style="color:#eeffff;">EdcConnectorApiVersion</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">V5</span><span style="color:#89ddff;">)
+</span><span style="color:#eeffff;">    .</span><span style="color:#82aaff;">patch</span><span style="color:#89ddff;">(
+</span><span style="color:#eeffff;">        </span><span style="color:#89ddff;">"</span><span style="color:#c3e88d;">my-participant</span><span style="color:#89ddff;">",
+</span><span style="color:#eeffff;">        </span><span style="color:#89ddff;">&amp;</span><span style="color:#eeffff;">ParticipantContextConfigPatch</span><span style="color:#89ddff;">::</span><span style="color:#eeffff;">builder</span><span style="color:#89ddff;">()
+</span><span style="color:#eeffff;">            .</span><span style="color:#82aaff;">entry</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">edc.participant.id</span><span style="color:#89ddff;">", "</span><span style="color:#c3e88d;">my-participant</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">            .</span><span style="color:#82aaff;">remove_entry</span><span style="color:#89ddff;">("</span><span style="color:#c3e88d;">obsolete.key</span><span style="color:#89ddff;">")
+</span><span style="color:#eeffff;">            .</span><span style="color:#82aaff;">build</span><span style="color:#89ddff;">(),
+</span><span style="color:#eeffff;">    </span><span style="color:#89ddff;">)
+</span><span style="color:#eeffff;">    .await</span><span style="color:#89ddff;">?;
+</span></pre>
+
+<h3>Development</h3>
+<h4>Compiling</h4>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">git clone https://github.com/dataspace-rs/edc-rs.git
+</span><span style="color:#eeffff;">cd edc-rs
+</span><span style="color:#eeffff;">cargo build
+</span></pre>
+
+<h4>Testing</h4>
+<p>Some tests run against a running instance of EDC.</p>
+<p>You can use docker compose to start an instance for testing.</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">docker compose -f testing/docker-compose.yml up -d
+</span><span style="color:#eeffff;">cargo test 
+</span></pre>
+
+<p>The tests setup was mostly derived by the Typescript client <a href="https://github.com/Think-iT-Labs/edc-connector-client" rel="noopener noreferrer">edc-connector-client</a></p>
+
+
+
+        </main>
+      </div>
+
+      <footer>
+        
+        <span>
+          edc-rs
+        </span>
+      </footer>
+    </div>
+
+    
+    
+
+    
+
+
+  </body>
+</html>
