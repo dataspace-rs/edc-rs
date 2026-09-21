@@ -57,10 +57,7 @@ mod celexpressions {
         assert_eq!("ctx.agent.id == 'agent-1'", expression.expression());
         assert_eq!(&vec!["catalog".to_string()], expression.scopes());
         assert_eq!(&vec!["use".to_string()], expression.actions());
-        assert_eq!(
-            &Some("test expression".to_string()),
-            expression.description()
-        );
+        assert_eq!("test expression", expression.description());
 
         client
             .common_expression_language(version)

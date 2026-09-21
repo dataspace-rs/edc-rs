@@ -1,23 +1,14 @@
-use crate::types::properties::{FromValue, Properties, PropertyValue, ToValue};
-use crate::ConversionError;
+use crate::types::properties::{Properties, PropertyValue, ToValue};
 use bon::Builder;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::PreferMany, serde_as, OneOrMany};
 
-/// A stored CEL expression (`@type: CelExpression`).
-///
-/// `properties` and `private_properties` are client-side extras kept for
-/// compatibility; the connector model only carries the other fields.
+/// A stored CEL expression (`@type: CelExpression`), mirroring the
+/// `CelExpression` schema of the management API.
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct CommonExpressionLanguage {
-    #[builder(field)]
-    #[serde(default)]
-    properties: Properties,
-    #[builder(field)]
-    #[serde(default = "Default::default")]
-    private_properties: Properties,
     #[builder(into)]
     #[serde(rename = "@id")]
     id: String,
@@ -25,7 +16,8 @@ pub struct CommonExpressionLanguage {
     #[serde(rename = "@type")]
     ty: String,
     left_operand: String,
-    description: Option<String>,
+    #[builder(into)]
+    description: String,
     #[serde(default)]
     #[serde_as(deserialize_as = "OneOrMany<_, PreferMany>")]
     scopes: Vec<String>,
@@ -40,12 +32,6 @@ pub struct CommonExpressionLanguage {
 #[derive(Debug, Serialize, Deserialize, Builder)]
 #[serde(rename_all = "camelCase")]
 pub struct NewCommonExpressionLanguage {
-    #[builder(field)]
-    #[serde(default)]
-    properties: Properties,
-    #[builder(field)]
-    #[serde(default = "Default::default")]
-    private_properties: Properties,
     #[builder(into)]
     #[serde(rename = "@id")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -54,7 +40,10 @@ pub struct NewCommonExpressionLanguage {
     #[serde(rename = "@type")]
     ty: String,
     left_operand: String,
-    description: Option<String>,
+    #[builder(into)]
+    description: String,
+    #[builder(default)]
+    #[serde(default)]
     scopes: Vec<String>,
     /// Policy actions the expression is bound to (e.g. `use`).
     #[builder(default)]
@@ -138,34 +127,14 @@ impl CelExpressionTestResponse {
 }
 
 impl CommonExpressionLanguage {
-    pub fn property<T>(&self, property: &str) -> Result<Option<T>, ConversionError>
-    where
-        T: FromValue,
-    {
-        self.properties.get(property)
-    }
-
-    pub fn raw_property(&self, property: &str) -> Option<&PropertyValue>
-where {
-        self.properties.get_raw(property)
-    }
-
     pub fn id(&self) -> &str {
         &self.id
-    }
-
-    pub fn properties(&self) -> &Properties {
-        &self.properties
-    }
-
-    pub fn private_properties(&self) -> &Properties {
-        &self.private_properties
     }
 
     pub fn left_operand(&self) -> &str {
         &self.left_operand
     }
-    pub fn description(&self) -> &Option<String> {
+    pub fn description(&self) -> &str {
         &self.description
     }
     pub fn scopes(&self) -> &Vec<String> {
@@ -176,41 +145,5 @@ where {
     }
     pub fn expression(&self) -> &str {
         &self.expression
-    }
-}
-
-impl<S: common_expression_language_builder::State> CommonExpressionLanguageBuilder<S> {
-    pub fn property<T>(mut self, property: &str, value: T) -> Self
-    where
-        T: ToValue,
-    {
-        self.properties.set(property, value);
-        self
-    }
-
-    pub fn private_property<T>(mut self, property: &str, value: T) -> Self
-    where
-        T: ToValue,
-    {
-        self.private_properties.set(property, value);
-        self
-    }
-}
-
-impl<S: new_common_expression_language_builder::State> NewCommonExpressionLanguageBuilder<S> {
-    pub fn property<T>(mut self, property: &str, value: T) -> Self
-    where
-        T: ToValue,
-    {
-        self.properties.set(property, value);
-        self
-    }
-
-    pub fn private_property<T>(mut self, property: &str, value: T) -> Self
-    where
-        T: ToValue,
-    {
-        self.private_properties.set(property, value);
-        self
     }
 }
